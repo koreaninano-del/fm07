@@ -184,7 +184,58 @@ const EDITION_INFO={
 const RAR_INK={C:'#b4b4b4',R:'#111111',H:'#06202e',G:'#2b1d05',L:'#1b2607'};
 const RAR_BG={C:'#2a2a2a',R:'#e6e6e6',H:'#4cb3f0',G:'#e5a93b',L:'#c6f24e'};
 function sparkleSVG(x,y,r,op){ return `<path d="M${x} ${y-r} Q${x} ${y} ${x+r} ${y} Q${x} ${y} ${x} ${y+r} Q${x} ${y} ${x-r} ${y} Q${x} ${y} ${x} ${y-r}Z" fill="#fff" opacity="${op}"/>`; }
+/* ====== 울트라 레어 카드: 누끼 컷아웃 + 에디션 배경 ====== */
+const ULTRA_THEME={
+  XI:{bg:['#0b1a06','#3f6b12','#c6f24e'],ray:'#e4ffb0',label:'베스트 XI',tag:'ULTRA'},
+  AWARD:{bg:['#1a1203','#7a5410','#ffd86b'],ray:'#fff1c2',label:'개인상',tag:'ULTRA'},
+  CHAMP:{bg:['#1a1203','#7a5410','#ffd86b'],ray:'#fff1c2',label:'챔피언 ★',tag:'ULTRA'},
+};
+function ultraCardSVG(card,w){
+  const h=Math.round(w*1.33); const k=w/200; const uid='u'+hashStr(card.id)+Math.floor(Math.random()*1e6);
+  const th=ULTRA_THEME[card.edition]||ULTRA_THEME.CHAMP; const ed=EDITION_INFO[card.edition]||EDITION_INFO.CHAMP; const N=NATIONS[card.nat]||{n:card.nat};
+  const pts=CUT[card.img||card.id]; const year=(SETS.find(s=>s.id===card.set)||{}).year||'';
+  const foot=46*k, bw=6*k; const photoH=h-foot; // 사진 영역: 상단~이름띠
+  // 폴리곤은 원본 이미지(0~1000) 기준 → 사진 영역 좌표로 변환 (원본 비율 ≈ 카드 비율이라 폭 기준 스케일)
+  const sx=(w-2*bw)/1000, sy=(w-2*bw)*1.33/1000;
+  const poly=pts? pts.split(' ').map(p=>{ const [x,y]=p.split(',').map(Number); return (bw+x*sx).toFixed(1)+','+(bw+y*sy).toFixed(1); }).join(' ') : null;
+  const m=ed.metal; const stops=m.map((c,i)=>`<stop offset="${(i/(m.length-1)*100).toFixed(0)}%" stop-color="${c}"/>`).join('');
+  const hs=hashStr(card.id); const sp=[]; for(let i=0;i<9;i++){ const x=bw+((hs*(i*7+3))%97)/97*(w-2*bw); const y=bw+((hs*(i*11+5))%89)/89*photoH*0.6; const r=(1.5+((hs>>i)&3))*k; sp.push(sparkleSVG(x,y,r,0.9)); }
+  const rays=[...Array(7)].map((_,i)=>`<polygon points="${w/2},${photoH*0.62} ${(i/6)*w-w*0.1},${-h*0.1} ${(i/6)*w+w*0.12},${-h*0.1}" fill="${th.ray}" opacity=".07"/>`).join('');
+  const first=card.name.split(' · ')[0]; const sub=card.award||th.label;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="card-svg rar-L ultra"><defs>
+   <linearGradient id="mt${uid}" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient>
+   <radialGradient id="bg${uid}" cx="50%" cy="38%" r="75%"><stop offset="0%" stop-color="${th.bg[2]}"/><stop offset="45%" stop-color="${th.bg[1]}"/><stop offset="100%" stop-color="${th.bg[0]}"/></radialGradient>
+   <linearGradient id="ho${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff5bd1"/><stop offset="25%" stop-color="#ffd166"/><stop offset="50%" stop-color="#7cffb0"/><stop offset="75%" stop-color="#6ec6ff"/><stop offset="100%" stop-color="#c58cff"/></linearGradient>
+   <linearGradient id="sh${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="40%" stop-color="#fff" stop-opacity="0"/><stop offset="50%" stop-color="#fff" stop-opacity=".28"/><stop offset="60%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+   <clipPath id="in${uid}"><rect x="${bw}" y="${bw}" width="${w-2*bw}" height="${h-2*bw}" rx="${6*k}"/></clipPath>
+   ${poly?`<clipPath id="cut${uid}"><polygon points="${poly}"/></clipPath>`:''}
+   <filter id="gl${uid}" x="-15%" y="-15%" width="130%" height="130%"><feDropShadow dx="0" dy="0" stdDeviation="${4*k}" flood-color="${ed.frame}" flood-opacity=".7"/></filter>
+   <filter id="pg${uid}" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="${2*k}" stdDeviation="${5*k}" flood-color="#000" flood-opacity=".6"/></filter>
+  </defs>
+   <rect x="${1.5*k}" y="${1.5*k}" width="${w-3*k}" height="${h-3*k}" rx="${9*k}" fill="url(#mt${uid})" filter="url(#gl${uid})"/>
+   <rect x="${1.5*k}" y="${1.5*k}" width="${w-3*k}" height="${h-3*k}" rx="${9*k}" fill="url(#ho${uid})" opacity=".35"/>
+   <g clip-path="url(#in${uid})">
+     <rect x="${bw}" y="${bw}" width="${w-2*bw}" height="${h-2*bw}" fill="url(#bg${uid})"/>
+     ${rays}
+     <text x="${w/2}" y="${photoH*0.72}" font-size="${150*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="${th.ray}" opacity=".10">${String(year).slice(-2)}</text>
+     <circle cx="${w/2}" cy="${photoH*0.5}" r="${w*0.42}" fill="none" stroke="${th.ray}" stroke-opacity=".18" stroke-width="${1.5*k}"/>
+     <circle cx="${w/2}" cy="${photoH*0.5}" r="${w*0.3}" fill="${th.ray}" opacity=".08"/>
+     ${sp.join('')}
+     ${poly?`<g filter="url(#pg${uid})"><g clip-path="url(#cut${uid})"><image href="${IMG[card.img||card.id]}" x="${bw}" y="${bw}" width="${w-2*bw}" height="${(w-2*bw)*1.33}" preserveAspectRatio="none"/></g></g>`
+          :`<image href="${IMG[card.img||card.id]}" x="${bw}" y="${bw}" width="${w-2*bw}" height="${photoH-bw}" preserveAspectRatio="xMidYMid slice"/>`}
+     <rect x="${bw}" y="${bw}" width="${w-2*bw}" height="${photoH}" fill="url(#sh${uid})"/>
+     <rect x="${bw}" y="${photoH}" width="${w-2*bw}" height="${foot-bw}" fill="${th.bg[0]}" opacity=".92"/>
+     <rect x="${bw}" y="${photoH}" width="${w-2*bw}" height="${2*k}" fill="url(#mt${uid})"/>
+     <text x="${12*k}" y="${photoH+17*k}" font-size="${12*k}" font-family="Inter, sans-serif" font-weight="700" fill="#fff">${esc(first)}</text>
+     <text x="${12*k}" y="${photoH+31*k}" font-size="${7.5*k}" font-family="Inter, sans-serif" font-weight="500" fill="${th.bg[2]}">${esc(sub)} · ${esc(N.n)} ${POS_KO[card.pos]||''}</text>
+     <text x="${w-12*k}" y="${photoH+28*k}" font-size="${24*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="end" fill="${th.bg[2]}">${card.rating}</text>
+   </g>
+   <rect x="${bw}" y="${bw}" width="${44*k}" height="${13*k}" rx="${3*k}" fill="${th.bg[2]}"/>
+   <text x="${bw+22*k}" y="${bw+9.5*k}" font-size="${7*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="${th.bg[0]}" letter-spacing="1">${th.tag}</text>
+   <text x="${w-bw-4*k}" y="${bw+10*k}" font-size="${7*k}" font-family="Inter, sans-serif" font-weight="600" text-anchor="end" fill="#fff" opacity=".85">${String(card.no).padStart(3,'0')} / ${card.total}</text></svg>`;
+}
 function imageCardSVG(card,w){
+  if(card.ultra&&typeof CUT!=='undefined'&&CUT[card.img||card.id]) return ultraCardSVG(card,w);
   const h=Math.round(w*1.33); const k=w/200; const R=RARITY[card.rar]; const uid='i'+hashStr(card.id)+Math.floor(Math.random()*1e6);
   const ed=card.edition?EDITION_INFO[card.edition]:null;
   const bw=(ed?7:4)*k, foot=20*k, tabH=ed?16*k:0;
