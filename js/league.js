@@ -2,7 +2,7 @@
 const AI_CLUBS=[
  ['서울 썬더','KOR','press'],['부산 웨이브','KOR','counter'],['김해 가야 FC','KOR','poss'],['도쿄 라이징','JPN','poss'],['상파울루 삼바','BRA','poss'],['리우 오션','BRA','counter'],
  ['마드리드 로얄','ESP','poss'],['바르사 블루','ESP','poss'],['런던 라이온스','ENG','press'],['맨체스터 스톰','ENG','press'],['베를린 아이언','GER','press'],['뮌헨 이글스','GER','poss'],
- ['파리 에투알','FRA','counter'],['밀라노 네로','ITA','counter'],['암스테르담 오렌지','NED','poss'],['리스본 나비','POR','counter'],['부에노스 탱고','ARG','press'],['카사블랑카 아틀라스','MAR','counter'],
+ ['파리 에툼알','FRA','counter'],['밀라노 네로','ITA','counter'],['암스테르담 오렌지','NED','poss'],['리스본 나비','POR','counter'],['부에노스 탱고','ARG','press'],['카사블랑카 아틀라스','MAR','counter'],
  ['카이로 파라오','EGY','counter'],['멕시코시티 아즈텍','MEX','press'],['LA 스타즈','USA','press'],['토론토 메이플','CAN','counter'],['오슬로 바이킹','NOR','press'],['자그레브 체커','CRO','poss'],
 ];
 const TIER_NAME={1:'1부 리그',2:'2부 리그',3:'3부 리그'}; const TIER_AVG={1:86,2:81,3:76};
@@ -89,6 +89,7 @@ function playCup(){
 function playFriendly(fid){ const err=squadReady(); if(err) return toast(err+' (스쿼드 편집에서)'); const f=FRIENDS.find(x=>x.id===fid); const away=buildOpponent(f,squadOf()); startMatch(away,{kind:'friendly',wages:0,label:`${f.name}과(와) 친선 경기`,onEnd:r=>{ logIt(`${f.name}과(와) 친선 ${r.hs}:${r.as}`); save(); return {html:'<div class="muted">친선 경기는 급여·상금이 없어요</div>'}; }}); }
 /* ---- 홈 패널 ---- */
 function renderClubPanels(){
+  try{ renderFamilyPanel(); }catch(e){ console.warn(e); }
   const c=clubOf(); const sq=squadOf(); const F=FORMATIONS[sq.formation]; const err=squadReady(); const w=squadWage(sq);
   const mini=F.map((s,i)=>{ const id=sq.slots[i]; const cd=id?CARDS[id]:null; return `<div class="mslot ${cd?'':'empty'}" style="left:${s[1]}%;top:${8+s[2]*0.84}%">${cd?`<img src="${IMG[cd.img||cd.id]||''}"><span>${cd.name.split(' ').pop()} <b>${cd.rating-posPenalty(cd,s[0])}</b></span>`:`<i>${s[0]}</i>`}</div>`; }).join('');
   document.getElementById('club-panel').innerHTML=`<div class="club-head"><div><h1 class="club-name title" onclick="renameClub()">${c.name}<span class="muted">이름 바꾸기</span></h1><div class="muted small">${TIER_NAME[c.tier]} · 시즌 ${c.season} · 우승 리그 ${c.trophies.league} · 컵 ${c.trophies.cup}</div></div><div class="ovr"><div class="k">팀 능력치</div><div class="v num">${err?'–':squadRating(sq)}</div></div></div>
@@ -96,7 +97,7 @@ function renderClubPanels(){
     <div class="club-foot"><div class="small ${w>WAGE_CAP?'warn':'muted'}">${sq.formation} · ${STYLES[sq.style].n} · ${MENTAL[sq.mental].n} · 급여 ${fmt(w)}/${fmt(WAGE_CAP)}</div><button class="btn" onclick="openBattleLobby()">스쿼드 편집</button></div>${err?`<div class="warn small">${err}</div>`:''}`;
   // league
   if(!c.league) newSeason(); const L=c.league; const st=standings(L); const next=L.md<L.fixtures.length?L.fixtures[L.md].find(m=>m.h==='ME'||m.a==='ME'):null; const oppId=next?(next.h==='ME'?next.a:next.h):null;
-  document.getElementById('league-panel').innerHTML=`<table class="ltable"><tr><th>#</th><th>팀</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${st.map((t,i)=>{ const r=L.table[t]; return `<tr class="${t==='ME'?'me':''} ${i<2&&c.tier>1?'up':''} ${i>=6&&c.tier<3?'down':''}"><td>${i+1}</td><td>${leagueName(t)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`; }).join('')}</table>
+  document.getElementById('ai-league-panel').innerHTML=`<table class="ltable"><tr><th>#</th><th>팀</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${st.map((t,i)=>{ const r=L.table[t]; return `<tr class="${t==='ME'?'me':''} ${i<2&&c.tier>1?'up':''} ${i>=6&&c.tier<3?'down':''}"><td>${i+1}</td><td>${leagueName(t)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`; }).join('')}</table>
     <div class="next"><div><div class="muted small">다음 경기 · ${L.md+1}/${L.fixtures.length}라운드</div><b>${oppId!==null?`vs ${leagueName(oppId)} (${TIER_AVG[L.tier]+((hashStr(AI_CLUBS[oppId][0])%7)-3)})`:'시즌 종료'}</b></div><button class="btn primary" onclick="playLeague()" ${err?'disabled':''}>경기하기</button></div>
     <div class="muted small">오늘 남은 경기 ${matchesLeft()}/${DAILY_MATCHES} · 급여 ${fmt(w)} 지출, 승리 시 ${fmt(Math.round(w*1.3)+3000+(L.tier===1?3000:L.tier===2?1500:0))}</div>`;
   // cup
