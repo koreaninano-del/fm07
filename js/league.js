@@ -6,7 +6,7 @@ const AI_CLUBS=[
  ['카이로 파라오','EGY','counter'],['멕시코시티 아즈텍','MEX','press'],['LA 스타즈','USA','press'],['토론토 메이플','CAN','counter'],['오슬로 바이킹','NOR','press'],['자그레브 체커','CRO','poss'],
 ];
 const TIER_NAME={1:'1부 리그',2:'2부 리그',3:'3부 리그'}; const TIER_AVG={1:86,2:81,3:76};
-const DAILY_MATCHES=5;
+const DAILY_MATCHES=10;
 function clubOf(){ if(!S.club){ S.club={name:S.name+' FC',tier:3,season:1,league:null,cup:null,history:[],trophies:{league:0,cup:0}}; } return S.club; }
 function matchesLeft(){ if(S.matchDay!==todayStr()){ S.matchDay=todayStr(); S.matchCount=0; } return DAILY_MATCHES-(S.matchCount||0); }
 function clubStrength(idx,tier){ return TIER_AVG[tier]+((hashStr(AI_CLUBS[idx][0])%7)-3); }
