@@ -168,7 +168,10 @@ function friendCards(f){
 function friendValue(f,c){ return c.price*(f.likes.includes(c.nat)?1.4:1); }
 /* ====== 트레이드 ====== */
 let tr={friend:null,mine:null,theirs:null};
-function openTradeLobby(){ openModal(`<h2>교환 테이블</h2><p class="muted">누구와 카드를 바꿀까요?</p><div class="friend-list">${FRIENDS.map(f=>`<div class="friend" onclick="openTrade('${f.id}')"><div class="f-avatar" style="background:${f.avatar[0]}">${f.name[0]}</div><div><b>${f.name}</b><div class="muted small">좋아하는 팀: ${f.likes.map(n=>NATIONS[n].n).join(', ')}</div><div class="small">"${f.greet}"</div></div></div>`).join('')}</div><button class="btn" onclick="closeModal()">닫기</button>`); }
+function openTradeLobby(tab){ tab=tab||(typeof famOn==='function'&&famOn()?'fam':'npc');
+  openModal(`<h2>트레이드</h2><div class="tabs" style="margin:10px 0"><button class="tab ${tab==='fam'?'on':''}" onclick="openTradeLobby('fam')">가족</button><button class="tab ${tab==='npc'?'on':''}" onclick="openTradeLobby('npc')">연습 친구</button></div>
+  ${tab==='fam'?renderFamTradeTab():`<p class="muted">가상 친구와 바로 1:1 교환해요.</p><div class="friend-list">${FRIENDS.map(f=>`<div class="friend" onclick="openTrade('${f.id}')"><div class="f-avatar" style="background:${f.avatar[0]}">${f.name[0]}</div><div><b>${f.name}</b><div class="muted small">좋아하는 팀: ${f.likes.map(n=>NATIONS[n].n).join(', ')}</div><div class="small">"${f.greet}"</div></div></div>`).join('')}</div>`}
+  <div class="row right"><button class="btn" onclick="closeModal()">닫기</button></div>`); }
 function openTrade(fid){ tr={friend:FRIENDS.find(f=>f.id===fid),mine:null,theirs:null}; renderTrade(); }
 function renderTrade(msg){
   const f=tr.friend; const theirs=friendCards(f).map(id=>CARDS[id]); const mine=myCards();
@@ -179,7 +182,7 @@ function renderTrade(msg){
     <div class="trade-mid"><div class="f-avatar big" style="background:${f.avatar[0]}">${f.name[0]}</div><b>${f.name}</b><div class="bubble small">${msg||(tr.mine&&tr.theirs?(ok?'좋아, 바꾸자!':'음… 내 카드가 더 좋은 것 같은데?'):'바꿀 카드를 하나씩 골라 봐.')}</div>
       <div class="trade-slots"><div class="tslot">${tr.mine?cardSVG(CARDS[tr.mine],90):'<div class="muted small">내 카드</div>'}</div><div class="arrow">⇄</div><div class="tslot">${tr.theirs?cardSVG(CARDS[tr.theirs],90):'<div class="muted small">친구 카드</div>'}</div></div>
       <div class="muted small">${f.name}이(가) 좋아하는 팀: ${f.likes.map(n=>NATIONS[n].n).join(', ')} (더 높게 쳐줘요)</div>
-      <button class="btn primary" ${ok?'':'disabled'} onclick="doTrade()">교환 제안하기</button><button class="btn" onclick="openTradeLobby()">다른 친구</button><button class="btn" onclick="closeModal()">닫기</button></div>
+      <button class="btn primary" ${ok?'':'disabled'} onclick="doTrade()">교환 제안하기</button><button class="btn" onclick="openTradeLobby('npc')">다른 친구</button><button class="btn" onclick="closeModal()">닫기</button></div>
     <div class="trade-col"><h3>${f.name}의 카드</h3><div class="card-grid small">${theirs.map(c=>pick(c,'theirs',tr.theirs===c.id)).join('')}</div></div></div>`,'wide');
 }
 function doTrade(){
