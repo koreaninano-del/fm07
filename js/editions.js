@@ -28,8 +28,8 @@ EDITION_SETS.push({id:'ED4',name:'4강 레드 파이어 에디션',short:'4강 �
 EDITION_SETS.push({id:'EDCH',name:'챔피언 골드 에디션 (우승 스페인 · 준우승 아르헨티나)',short:'챔피언 골드',year:2026,theme:['#d4a017','#5a3e00'],icon:'🏆',style:'sticker',
   players:variantsOf(['ESP','ARG'],'CHAMP',1,2.5,['player','emblem','team'])});
 // 베스트 일레븐 팩: 4강 팀 레드 에디션 + 개인상 카드 + 베스트 XI 레인보우 (마지막 1장 보장)
-const xi=BEST_XI.map(([nat,name])=>{ const b=findBase(nat,name); return Object.assign({},b.p,{rar:'L',mult:1.8,edition:'XI',img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · 베스트 XI'}); });
-const aw=AWARDS.map(([nat,name,label,m])=>{ const b=findBase(nat,name); return Object.assign({},b.p,{rar:'G',mult:m,edition:'AWARD',award:label,img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · '+label.split(' ')[0]}); });
+const xi=BEST_XI.map(([nat,name])=>{ const b=findBase(nat,name); return Object.assign({},b.p,{rar:'L',mult:8,ultra:true,edition:'XI',img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · 베스트 XI'}); });
+const aw=AWARDS.map(([nat,name,label,m])=>{ const b=findBase(nat,name); return Object.assign({},b.p,{rar:'L',mult:m*2.2,ultra:true,edition:'AWARD',award:label,img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · '+label.split(' ')[0]}); });
 EDITION_SETS.push({id:'EDXI',name:'베스트 일레븐 팩 (베스트 XI 1장 보장)',short:'베스트 XI',year:2026,theme:['#ff2d95','#1e1b4b'],icon:'⭐',style:'sticker',
   players:[...variantsOf(SF,'SF',1,2,['player']),...aw,...xi], guar:c=>c.edition==='XI'});
 
@@ -44,8 +44,8 @@ function variantsIn(sets,teams,ed,bumpN,mult,kinds){
   return out;
 }
 function buildOldEditions(year,tag,sets,R16x,QFx,SFx,finalists,champLabel,xiList,awardList){
-  const xi=xiList.map(([nat,name])=>findBaseIn(sets,nat,name)).filter(Boolean).map(b=>Object.assign({},b.p,{rar:'L',mult:1.8,edition:'XI',img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · 베스트 XI'}));
-  const aw=awardList.map(([nat,name,label,m])=>{ const b=findBaseIn(sets,nat,name); return b&&Object.assign({},b.p,{rar:'G',mult:m,edition:'AWARD',award:label,img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · '+label.split(' ')[0]}); }).filter(Boolean);
+  const xi=xiList.map(([nat,name])=>findBaseIn(sets,nat,name)).filter(Boolean).map(b=>Object.assign({},b.p,{rar:'L',mult:8,ultra:true,edition:'XI',img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · 베스트 XI'}));
+  const aw=awardList.map(([nat,name,label,m])=>{ const b=findBaseIn(sets,nat,name); return b&&Object.assign({},b.p,{rar:'L',mult:m*2.2,ultra:true,edition:'AWARD',award:label,img:b.set.id+'-'+String(b.idx+1).padStart(3,'0'),kind:'player',name:b.p.name+' · '+label.split(' ')[0]}); }).filter(Boolean);
   return [
     {id:tag+'R16',name:`${year} 16강 진출팀 블루 크롬 에디션`,short:`${year} 16강 블루`,year,theme:['#2563eb','#0b1e4d'],icon:'💎',style:'sticker',players:variantsIn(sets,R16x,'R16',0,2.5,['player','emblem'])},
     {id:tag+'QF',name:`${year} 8강 진출팀 퍼플 홀로 에디션`,short:`${year} 8강 퍼플`,year,theme:['#7c3aed','#2e1065'],icon:'🔮',style:'sticker',players:variantsIn(sets,QFx,'QF',1,1.6,['player','emblem'])},
@@ -73,3 +73,7 @@ const OLD_EDITION_SETS=[
     [['BEL','티보 쿠르투아'],['FRA','라파엘 바란'],['URU','디에고 고딘'],['ESP','세르히오 라모스'],['FRA','은골로 캉테'],['CRO','루카 모드리치'],['BEL','케빈 더브라위너'],['BEL','에덴 아자르'],['FRA','앙투안 그리즈만'],['ENG','해리 케인'],['FRA','킬리안 음바페']],
     [['CRO','루카 모드리치','골든볼 · 대회 MVP',4],['BEL','에덴 아자르','실버볼',3.5],['FRA','앙투안 그리즈만','브론즈볼 · 실버부트 4골',3.5],['ENG','해리 케인','골든부트 6골',4],['BEL','로멜루 루카쿠','브론즈부트 4골',3],['BEL','티보 쿠르투아','골든글러브 · 최우수 GK',3.5],['FRA','킬리안 음바페','영플레이어상',3.5],['CRO','이반 페리시치','결승전 득점',2.5]])
 ];
+
+/* ====== 울트라 레어: 챔피언 에디션 상위 15명 (누끼 컷아웃 카드) ====== */
+function markUltra(set,n){ set.players.filter(p=>p.kind==='player').sort((a,b)=>b.rating-a.rating).slice(0,n).forEach(p=>{ p.ultra=true; p.rar='L'; p.mult=6; }); }
+[...EDITION_SETS,...OLD_EDITION_SETS].filter(s=>/CH$/.test(s.id)).forEach(s=>markUltra(s,15));
