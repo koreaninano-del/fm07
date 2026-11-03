@@ -13,6 +13,7 @@ function famPublish(){
   famPubTimer=setTimeout(async()=>{ try{
     const c=clubOf(); const sq=squadOf(); const ready=!squadReady();
     await famDB().collection('clubs').doc(Account.uid).set({uid:Account.uid,id:Account.id,name:c.name,owner:S.name,rating:ready?squadRating(sq):0,ready,squad:{formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots},cards:Object.keys(S.cards).filter(id=>CARDS[id]),updated:Date.now()});
+    if(!Fam.clubs[Account.uid]){ await famLoad(); if(typeof renderHome==='function') renderHome(); }
   }catch(e){ console.warn('club publish',e); } },2000);
 }
 /* ---- 불러오기 ---- */
