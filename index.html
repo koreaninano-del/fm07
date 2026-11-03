@@ -242,11 +242,12 @@ input:focus,select:focus{outline:none;border-color:#fff}
   <div class="main">
     <div class="col">
       <div class="sec club" id="club-panel"></div>
-      <div class="sec"><h2>리그 <span class="more" onclick="openClubHistory()">시즌 기록</span></h2><div class="desc">8팀 더블 라운드 로빈 14경기. 상위 2팀 승격, 하위 2팀 강등.</div><div id="league-panel"></div></div>
+      <div class="sec"><h2>가족 리그 <span class="more" onclick="openClubHistory()">시즌 기록</span></h2><div class="desc">같은 사이트에 가입한 가족 계정이 한 리그에서 겨뤄요. 매달 새 시즌.</div><div id="league-panel"></div></div>
+      <div class="sec"><h2>연습 리그 (AI)</h2><div class="desc">8팀 더블 라운드 로빈 14경기. 상위 2팀 승격, 하위 2팀 강등.</div><div id="ai-league-panel"></div></div>
       <div class="sec"><h2>FA컵 · 친선</h2><div class="desc">16강부터 결승까지 4연승하면 우승.</div><div id="cup-panel"></div></div>
     </div>
     <div class="col">
-      <div class="sec"><h2>추천 팩 <span class="more" onclick="openShop()">전체 팩 보기</span></h2><div class="desc">카드를 모아 스쿼드를 키우세요.</div><div class="packs" id="home-packs"></div></div>
+      <div class="sec"><h2>최천 팩 <span class="more" onclick="openShop()">전체 팩 보기</span></h2><div class="desc">카드를 모아 스쿼드를 키우세요.</div><div class="packs" id="home-packs"></div></div>
       <div class="sec"><h2>최근 뽑은 카드 <span class="more" onclick="openBinder()">카드북</span></h2><div class="desc">방금 뽑은 카드가 여기에 쌓여요.</div><div class="recent" id="home-recent"></div></div>
       <div class="sec"><h2>내 컬렉션</h2><div class="desc">카드북 현황</div><div class="summary" id="home-summary"></div></div>
       <div class="tiles">
@@ -274,6 +275,7 @@ const MARK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16l-1.5 2L
 <script src="js/card.js"></script>
 <script src="js/match.js"></script>
 <script src="js/league.js"></script>
+<script src="js/family.js"></script>
 <script src="js/home.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/game.js"></script>
