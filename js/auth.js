@@ -68,7 +68,7 @@ async function accountSaveNow(profile){
   if(Account.mode==='cloud'){
     await Account.fb.db.collection('saves').doc(Account.uid).set({id:Account.id,name:profile.name,data:JSON.stringify(profile),updated:Date.now()});
   } else { const acc=localAccounts(); if(acc[Account.id]){ acc[Account.id].data=profile; acc[Account.id].updated=Date.now(); saveLocalAccounts(acc); } }
-  Account.dirty=false; setSyncState('ok');
+  Account.dirty=false; setSyncState('ok'); if(typeof famPublish==='function') famPublish();
 }
 function accountSave(){ // 디바운스 저장
   if(!Account.uid) return; Account.dirty=true; setSyncState('pending');
@@ -118,7 +118,7 @@ function startWith(profile,isNew){
   Object.keys(profile.cards||{}).forEach(id=>{ if(!CARDS[id]) delete profile.cards[id]; });
   Object.keys(profile.friends||{}).forEach(f=>{ if(profile.friends[f].some(id=>!CARDS[id])) delete profile.friends[f]; });
   DB.profiles=[profile]; DB.current=0; S=profile; refreshHUD(); closeModal(); setSyncState('ok');
-  toast(`${S.name}, 어서 와!`); if(isNew) setTimeout(showHelp,400);
+  toast(`${S.name}, 어서 와!`); if(isNew) setTimeout(showHelp,400); if(typeof famLoad==='function'&&famOn()){ famLoad().catch(e=>console.warn(e)); famPublish(); if(Fam.timer) clearInterval(Fam.timer); Fam.timer=setInterval(()=>famLoad().catch(()=>{}),90000); }
 }
 function openAccount(){
   openModal(`<h2>내 계정</h2><div class="stat-row"><span>아이디</span><b>${Account.id}</b></div><div class="stat-row"><span>이름</span><b>${S.name}</b></div><div class="stat-row"><span>저장 방식</span><b>${Account.mode==='cloud'?'클라우드 (어느 기기에서나 이어하기)':'이 기기에만 저장'}</b></div>
