@@ -27,7 +27,7 @@ const NATIONS = {
   DEN:{n:'덴마크',flag:['cross','#c60c30','#fff'],kit:['#c60c30','#fff'],sk:'#f1c27d'},
   SUI:{n:'스위스',flag:['sui'],kit:['#d52b1e','#fff'],sk:'#f1c27d'},
   MAR:{n:'모로코',flag:['mar'],kit:['#c1272d','#006233'],sk:'#c68642'},
-  USA:{n:'미국',flag:['usa'],kit:['#fff','#1a3a7a'],sk:'#e0ac69'},
+  USA:{n:'��국',flag:['usa'],kit:['#fff','#1a3a7a'],sk:'#e0ac69'},
   CAN:{n:'캐나다',flag:['v','#ff0000','#fff','#ff0000'],kit:['#ff0000','#fff'],sk:'#e0ac69'},
   KSA:{n:'사우디아라비아',flag:['h','#006c35'],kit:['#fff','#006c35'],sk:'#c68642'},
   TUR:{n:'튀르키예',flag:['circle','#e30a17','#fff'],kit:['#e30a17','#fff'],sk:'#e0ac69'},
@@ -78,7 +78,7 @@ const RARITY = {
   L:{n:'레전드',base:25000,odds:1,  color:'#c6f24e'},
 };
 // [이름, 국가, 포지션, 능력치, 등급]
-const SETS = [...WC_SETS, ...EDITION_SETS, ...OLD_WC_SETS];
+const SETS = [...WC_SETS, ...EDITION_SETS, ...OLD_WC_SETS, ...OLD_EDITION_SETS];
 SETS.forEach(s=>{ s.short=s.short.replace('WC26 스티커 ','2026 ').replace('WC26 ','2026 ').replace('WC14 ','2014 ').replace('WC18 ','2018 '); });
 const CARDS = {};
 SETS.forEach(set=>{
