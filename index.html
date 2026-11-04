@@ -219,6 +219,12 @@ input:focus,select:focus{outline:none;border-color:#fff}
 .events{background:var(--raised);border-radius:12px;padding:6px 14px;min-height:300px;max-height:440px;overflow:auto}.ev{padding:8px 0;border-top:1px solid #333;display:flex;gap:10px}.ev:first-child{border-top:0}.ev .em{color:var(--muted);width:32px;flex:none;font-variant-numeric:tabular-nums}.ev.goal{font-weight:600;color:var(--accent)}.ev.goal.away{color:var(--negative)}.ev.info{color:var(--muted)}
 .result{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}.score{font-size:32px;line-height:36px;font-weight:600;font-variant-numeric:tabular-nums}
 .season-end{background:var(--raised);border-radius:12px;padding:12px 16px;margin-top:10px;text-align:left;width:100%}
+.box-wrap{width:140px;height:140px;margin:10px auto;cursor:pointer;position:relative}
+.box{position:absolute;inset:0}.box-body{position:absolute;left:10px;right:10px;top:40px;bottom:0;background:var(--raised);border-radius:12px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:700;color:var(--accent)}
+.box-lid{position:absolute;left:0;right:0;top:18px;height:30px;background:var(--accent);border-radius:8px}
+.box-wrap.shaking{animation:shake .9s ease-in-out}
+@keyframes shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-8deg) translateY(-6px)}40%{transform:rotate(8deg)}60%{transform:rotate(-6deg) translateY(-4px)}80%{transform:rotate(6deg)}}
+.box-money{font-size:40px;line-height:48px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;margin:10px 0}
 /* auth / profiles */
 .modal-wrap.auth .modal{width:min(420px,96%)}
 .auth{display:flex;flex-direction:column;gap:10px}.auth-logo{display:flex;justify-content:center;margin:6px 0}.auth-logo svg{width:40px;height:40px}.auth label{display:flex;flex-direction:column;gap:6px;font-size:var(--fs-body);font-weight:500}.auth input,.auth select{width:100%}
@@ -247,7 +253,7 @@ input:focus,select:focus{outline:none;border-color:#fff}
       <div class="sec"><h2>FA컵 · 친선</h2><div class="desc">16강부터 결승까지 4연승하면 우승.</div><div id="cup-panel"></div></div>
     </div>
     <div class="col">
-      <div class="sec"><h2>최천 팩 <span class="more" onclick="openShop()">전체 팩 보기</span></h2><div class="desc">카드를 모아 스쿼드를 키우세요.</div><div class="packs" id="home-packs"></div></div>
+      <div class="sec"><h2>추천 팩 <span class="more" onclick="openShop()">전체 팩 보기</span></h2><div class="desc">카드를 모아 스쿼드를 키우세요.</div><div class="packs" id="home-packs"></div></div>
       <div class="sec"><h2>최근 뽑은 카드 <span class="more" onclick="openBinder()">카드북</span></h2><div class="desc">방금 뽑은 카드가 여기에 쌓여요.</div><div class="recent" id="home-recent"></div></div>
       <div class="sec"><h2>내 컬렉션</h2><div class="desc">카드북 현황</div><div class="summary" id="home-summary"></div></div>
       <div class="tiles">
@@ -255,6 +261,8 @@ input:focus,select:focus{outline:none;border-color:#fff}
         <div class="tile" onclick="openBinder()"><div><div class="tt">카드북</div><div class="ts" id="tile-book"></div></div></div>
         <div class="tile" onclick="openTradeLobby()"><div><div class="tt">트레이드</div><div class="ts">민준 · 서연 · 지호</div></div></div>
         <div class="tile" onclick="openBank()"><div><div class="tt">용돈 상자</div><div class="ts" id="tile-bank"></div></div></div>
+        <div class="tile" onclick="openRandomBox()"><div><div class="tt">랜덤박스</div><div class="ts" id="tile-box"></div></div></div>
+        <div class="tile" id="tile-admin" style="display:none" onclick="openAdmin()"><div><div class="tt">관리자</div><div class="ts">전원에게 돈 넣어주기</div></div></div>
       </div>
     </div>
   </div>
@@ -265,21 +273,22 @@ input:focus,select:focus{outline:none;border-color:#fff}
 <script>
 const MARK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16l-1.5 2L20 7l-1.5 2L20 11l-1.5 2L20 15l-1.5 2L20 19l-1.5 2H4l1.5-2L4 17l1.5-2L4 13l1.5-2L4 9l1.5-2L4 5z" fill="#c6f24e"/><circle cx="12" cy="12" r="4" fill="#000"/></svg>';
 </script>
-<script src="firebase-config.js?v=202611040005"></script>
-<script src="js/img_data.js?v=202611040005"></script>
-<script src="js/img_data2.js?v=202611040005"></script>
-<script src="js/wc_data.js?v=202611040005"></script>
-<script src="js/wc1418_data.js?v=202611040005"></script>
-<script src="js/editions.js?v=202611040005"></script>
-<script src="js/data.js?v=202611040005"></script>
-<script src="js/cut_data.js?v=202611040005"></script>
-<script src="js/card.js?v=202611040005"></script>
-<script src="js/match.js?v=202611040005"></script>
-<script src="js/league.js?v=202611040005"></script>
-<script src="js/family.js?v=202611040005"></script>
-<script src="js/home.js?v=202611040005"></script>
-<script src="js/auth.js?v=202611040005"></script>
-<script src="js/game.js?v=202611040005"></script>
+<script src="firebase-config.js?v=202611041815"></script>
+<script src="js/img_data.js?v=202611041815"></script>
+<script src="js/img_data2.js?v=202611041815"></script>
+<script src="js/wc_data.js?v=202611041815"></script>
+<script src="js/wc1418_data.js?v=202611041815"></script>
+<script src="js/editions.js?v=202611041815"></script>
+<script src="js/data.js?v=202611041815"></script>
+<script src="js/cut_data.js?v=202611041815"></script>
+<script src="js/card.js?v=202611041815"></script>
+<script src="js/match.js?v=202611041815"></script>
+<script src="js/league.js?v=202611041815"></script>
+<script src="js/family.js?v=202611041815"></script>
+<script src="js/extras.js?v=202611041815"></script>
+<script src="js/home.js?v=202611041815"></script>
+<script src="js/auth.js?v=202611041815"></script>
+<script src="js/game.js?v=202611041815"></script>
 
 </body>
 </html>
