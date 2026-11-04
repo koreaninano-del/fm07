@@ -28,4 +28,5 @@ function renderHome(){
   try{ renderClubPanels(); }catch(e){ console.error(e); }
   const can=S.lastAllowance!==todayStr();
   document.getElementById('tile-bank').innerHTML=can?'<span class="dot"></span>오늘 용돈을 받을 수 있어요':'오늘은 이미 받았어요';
+  if(typeof boxLeft==='function'){ const bl=boxLeft(); document.getElementById('tile-box').innerHTML=bl>0?`<span class="dot"></span>오늘 ${bl}번 남음 · 돈 또는 80+ 카드`:'오늘은 다 열었어요'; document.getElementById('tile-admin').style.display=isAdmin()&&famOn()?'':'none'; }
 }
