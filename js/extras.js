@@ -41,7 +41,7 @@ function shakeBox(){
 /* ---- 관리자: 가입자 전원에게 일괄 지급 (Firestore grants 컬렉션) ---- */
 async function grantsCheck(){
   if(!famOn()) return; if(!S) return;
-  if(!S.grantSeen){ S.grantSeen=Date.now(); save(); return; } // 가입 이후의 지급만 받음
+  if(!S.grantSeen){ S.grantSeen=S.created?new Date(S.created+'T00:00:00').getTime()-1:0; } // 계정 생성일 이후 지급만 받음
   const qs=await famDB().collection('grants').where('t','>',S.grantSeen).orderBy('t').get();
   let total=0, last=S.grantSeen; qs.forEach(d=>{ const g=d.data(); if(g.amount>0){ S.money+=g.amount; total+=g.amount; logIt(`관리자 지급: ${fmt(g.amount)}${g.note?' · '+g.note:''}`); } last=Math.max(last,g.t); });
   if(total>0){ S.grantSeen=last; refreshHUD(); toast(`관리자가 ${fmt(total)}을 넣어 줬어요!`); save(); }
