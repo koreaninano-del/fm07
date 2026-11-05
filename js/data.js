@@ -27,7 +27,7 @@ const NATIONS = {
   DEN:{n:'덴마크',flag:['cross','#c60c30','#fff'],kit:['#c60c30','#fff'],sk:'#f1c27d'},
   SUI:{n:'스위스',flag:['sui'],kit:['#d52b1e','#fff'],sk:'#f1c27d'},
   MAR:{n:'모로코',flag:['mar'],kit:['#c1272d','#006233'],sk:'#c68642'},
-  USA:{n:'��국',flag:['usa'],kit:['#fff','#1a3a7a'],sk:'#e0ac69'},
+  USA:{n:'미국',flag:['usa'],kit:['#fff','#1a3a7a'],sk:'#e0ac69'},
   CAN:{n:'캐나다',flag:['v','#ff0000','#fff','#ff0000'],kit:['#ff0000','#fff'],sk:'#e0ac69'},
   KSA:{n:'사우디아라비아',flag:['h','#006c35'],kit:['#fff','#006c35'],sk:'#c68642'},
   TUR:{n:'튀르키예',flag:['circle','#e30a17','#fff'],kit:['#e30a17','#fff'],sk:'#e0ac69'},
@@ -69,7 +69,12 @@ const NATIONS = {
   ISL:{n:'아이슬란드',flag:['cross','#02529c','#dc1e35'],kit:['#02529c','#fff'],sk:'#f1c27d'},
   FIFA:{n:'FIFA',flag:['h','#1b3a8a','#fff','#1b3a8a'],kit:['#1b3a8a','#fff'],sk:'#f1c27d'},
 };
-const POS_KO = {GK:'골키퍼',DF:'수비수',MF:'미드필더',FW:'공격수'};
+const POS_KO = {GK:'골키퍼',DF:'수비수',MF:'미드필더',FW:'공격수',CB:'센터백',LB:'레프트백',RB:'라이트백',LWB:'왼쪽 윙백',RWB:'오른쪽 윙백',CDM:'수비형 미드필더',CM:'중앙 미드필더',CAM:'공격형 미드필더',LM:'왼쪽 미드필더',RM:'오른쪽 미드필더',LW:'왼쪽 윙어',RW:'오른쪽 윙어',CF:'세컨드 스트라이커',ST:'스트라이커'};
+const POS_GROUP={GK:'GK',CB:'DF',LB:'DF',RB:'DF',LWB:'DF',RWB:'DF',CDM:'MF',CM:'MF',CAM:'MF',LM:'MF',RM:'MF',LW:'FW',RW:'FW',CF:'FW',ST:'FW'};
+const POS_DEFAULT={GK:'GK',DF:'CB',MF:'CM',FW:'ST'};
+function posStr(c){ return (c.pp||[c.pos]).join(' · '); }
+function isPlayerCard(c){ return !!c&&(!c.kind||c.kind==='player'||c.kind==='legend'||c.kind==='special'); }
+const POSD_BYNAME={};
 const RARITY = {
   C:{n:'일반',  base:500,  odds:66, color:'#b4b4b4'},
   R:{n:'레어',  base:1200, odds:22, color:'#e6e6e6'},
@@ -89,6 +94,7 @@ SETS.forEach(set=>{
     const price = Math.max(500, Math.round(RARITY[rar].base * (1+Math.max(0,rating-70)/40) * (o.mult||1) /100)*100);
     const c = Object.assign({}, o, {id,set:set.id,no:i+1,total:set.players.length,name,nat,pos,rating,rar,price,
       style:set.style||'classic', num: ((rating*7+i*13)%23)+1});
+    if(isPlayerCard(c)){ const pk=(typeof POSD!=='undefined'&&(POSD[o.img||id]||POSD_BYNAME[nat+'|'+name]))||''; c.pp=pk?pk.split(','):[POS_DEFAULT[c.pos]||'CM']; c.pos=POS_GROUP[c.pp[0]]||c.pos; if(pk&&!POSD_BYNAME[nat+'|'+name]) POSD_BYNAME[nat+'|'+name]=pk; }
     if(c.kind==='emblem') c.name=NATIONS[nat].n+' 엠블럼';
     if(c.kind==='team') c.name=NATIONS[nat].n+' 대표팀';
     c.img = o.img || id;
