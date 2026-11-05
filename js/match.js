@@ -19,19 +19,22 @@ function attrs(c){ if(c._a) return c._a; const h=hashStr(c.name+'|'+c.nat); cons
 function wage(c){ return Math.max(300,Math.round(300*Math.pow(1.13,c.rating-70)/100)*100); }
 function attrHTML(c){ const a=attrs(c); return `<div class="attrs">${Object.keys(ATTR_KO).map(k=>`<div class="attr"><span>${ATTR_KO[k]}</span><div class="bar"><i style="width:${a[k]}%;background:${a[k]>=85?'#15803d':a[k]>=70?'#65a30d':a[k]>=55?'#d97706':'#dc2626'}"></i></div><b>${a[k]}</b></div>`).join('')}</div><div class="stat-row"><span>특성</span><b>${a.trait.n} <span class="muted small">· ${a.trait.d}</span></b></div><div class="stat-row"><span>경기당 급여</span><b>${fmt(wage(c))}</b></div>`; }
 const FORMATIONS={
- '4-3-3':[['GK',50,92],['DF',15,72],['DF',38,76],['DF',62,76],['DF',85,72],['MF',30,52],['MF',50,56],['MF',70,52],['FW',20,24],['FW',50,18],['FW',80,24]],
- '4-4-2':[['GK',50,92],['DF',15,72],['DF',38,76],['DF',62,76],['DF',85,72],['MF',15,46],['MF',38,50],['MF',62,50],['MF',85,46],['FW',38,20],['FW',62,20]],
- '4-2-3-1':[['GK',50,92],['DF',15,72],['DF',38,76],['DF',62,76],['DF',85,72],['MF',38,58],['MF',62,58],['MF',20,36],['MF',50,38],['MF',80,36],['FW',50,16]],
- '3-5-2':[['GK',50,92],['DF',25,74],['DF',50,78],['DF',75,74],['MF',10,50],['MF',32,54],['MF',50,58],['MF',68,54],['MF',90,50],['FW',38,20],['FW',62,20]],
- '5-3-2':[['GK',50,92],['DF',8,66],['DF',30,76],['DF',50,80],['DF',70,76],['DF',92,66],['MF',30,50],['MF',50,54],['MF',70,50],['FW',38,20],['FW',62,20]],
+ '4-3-3':[['GK',50,92],['LB',15,72],['CB',38,76],['CB',62,76],['RB',85,72],['CM',30,52],['CDM',50,56],['CM',70,52],['LW',20,24],['ST',50,18],['RW',80,24]],
+ '4-4-2':[['GK',50,92],['LB',15,72],['CB',38,76],['CB',62,76],['RB',85,72],['LM',15,46],['CM',38,50],['CM',62,50],['RM',85,46],['ST',38,20],['ST',62,20]],
+ '4-2-3-1':[['GK',50,92],['LB',15,72],['CB',38,76],['CB',62,76],['RB',85,72],['CDM',38,58],['CDM',62,58],['LW',20,36],['CAM',50,38],['RW',80,36],['ST',50,16]],
+ '3-5-2':[['GK',50,92],['CB',25,74],['CB',50,78],['CB',75,74],['LWB',10,50],['CM',32,54],['CDM',50,58],['CM',68,54],['RWB',90,50],['ST',38,20],['ST',62,20]],
+ '5-3-2':[['GK',50,92],['LWB',8,66],['CB',30,76],['CB',50,80],['CB',70,76],['RWB',92,66],['CM',30,50],['CDM',50,54],['CM',70,50],['ST',38,20],['ST',62,20]],
 };
+/* 포지션 간 거리(페널티). 주·서브 포지션과 같으면 0, 가까우면 작게, 계열이 다르면 크게 */
+const POS_NEAR={'LB:LWB':2,'RB:RWB':2,'LB:RB':4,'LWB:RWB':4,'CB:LB':6,'CB:RB':6,'CB:LWB':7,'CB:RWB':7,'CB:CDM':6,'CDM:CM':2,'CM:CAM':3,'CDM:CAM':6,'CM:LM':4,'CM:RM':4,'LM:RM':4,'LM:LW':2,'RM:RW':2,'LM:LWB':5,'RM:RWB':5,'LM:LB':6,'RM:RB':6,'CAM:LW':5,'CAM:RW':5,'CAM:CF':3,'CAM:ST':7,'LW:RW':3,'ST:CF':2,'CF:LW':5,'CF:RW':5,'ST:LW':6,'ST:RW':6,'LM:RW':5,'RM:LW':5,'CDM:LB':7,'CDM:RB':7};
+function posDist(p,slot){ if(p===slot) return 0; const k=POS_NEAR[p+':'+slot]??POS_NEAR[slot+':'+p]; if(k!==undefined) return k; const g1=POS_GROUP[p]||p,g2=POS_GROUP[slot]||slot; if(g1==='GK'||g2==='GK') return 25; if(g1===g2) return 8; if((g1==='DF'&&g2==='FW')||(g1==='FW'&&g2==='DF')) return 16; return 11; }
 const STYLES={press:{n:'강한 압박',d:'높은 위치에서 공을 뺏어요. 점유 상대에 강하고, 역습에 약해요',beats:'poss'},poss:{n:'점유 축구',d:'공을 오래 가지고 천천히 공격해요. 역습 상대에 강하고, 압박에 약해요',beats:'counter'},counter:{n:'역습',d:'내려앉았다가 빠르게 찔러요. 압박 상대에 강하고, 점유에 약해요',beats:'press'}};
 const MENTAL={att:{n:'공격적',a:1.18,d:0.84},bal:{n:'균형',a:1,d:1},def:{n:'수비적',a:0.84,d:1.18}};
 const WAGE_CAP=25000, PRIZE_MATCHES=5;
 const OPP_TACTIC={minjun:'press',seoyeon:'poss',jiho:'counter'};
 function squadOf(){ if(!S.squad) S.squad={formation:'4-3-3',style:'press',mental:'bal',slots:Array(11).fill(null)}; if(!S.squad.slots||S.squad.slots.length!==11) S.squad.slots=Array(11).fill(null); S.squad.slots=S.squad.slots.map(id=>id&&CARDS[id]&&S.cards[id]?id:null); return S.squad; }
 function squadWage(sq){ return sq.slots.reduce((a,id)=>a+(id?wage(CARDS[id]):0),0); }
-function posPenalty(c,slotPos){ if(c.pos===slotPos) return 0; if(slotPos==='GK'||c.pos==='GK') return 25; if((c.pos==='DF'&&slotPos==='MF')||(c.pos==='MF'&&slotPos==='DF')||(c.pos==='MF'&&slotPos==='FW')||(c.pos==='FW'&&slotPos==='MF')) return 7; return 14; }
+function posPenalty(c,slotPos){ const pp=c.pp||[c.pos]; if(pp.includes(slotPos)) return 0; let best=99; pp.forEach((p,i)=>{ best=Math.min(best,posDist(p,slotPos)+(i?1:0)); }); return best; }
 function effAttrs(c,slotPos){ const a=attrs(c); const pen=posPenalty(c,slotPos); const o={}; Object.keys(ATTR_KO).forEach(k=>o[k]=Math.max(20,a[k]-pen)); o.trait=a.trait; o.pen=pen; return o; }
 /* ---- 스쿼드 화면 ---- */
 let mt={opp:null};
@@ -43,9 +46,9 @@ function renderSquad(msg){
   const nats={}; sq.slots.forEach(id=>{ if(id){ nats[CARDS[id].nat]=(nats[CARDS[id].nat]||0)+1; } });
   const chem=Object.values(nats).reduce((a,n)=>a+(n>=2?n-1:0),0);
   const pitch=F.map((s,i)=>{ const id=sq.slots[i]; const c=id?CARDS[id]:null; const pen=c?posPenalty(c,s[0]):0;
-    return `<div class="pslot ${c?'':'empty'} ${pen?'oop':''}" style="left:${s[1]}%;top:${6+s[2]*0.86}%" onclick="pickSlot(${i})" title="${s[0]}">${c?`<div class="pimg">${cardSVG(c,54)}</div><div class="pname">${c.name.split(' ').pop()}</div><div class="pr">${c.rating-pen}${pen?' (포지션 불일치)':''}</div>`:`<div class="pplus">+</div><div class="pname">${POS_KO[s[0]]}</div>`}</div>`; }).join('');
+    return `<div class="pslot ${c?'':'empty'} ${pen?'oop':''}" style="left:${s[1]}%;top:${6+s[2]*0.86}%" onclick="pickSlot(${i})" title="${s[0]}">${c?`<div class="pimg">${cardSVG(c,54)}</div><div class="pname">${c.name.split(' ').pop()}</div><div class="pr">${s[0]} ${c.rating-pen}${pen?' <span class="oopt">('+posStr(c)+')</span>':''}</div>`:`<div class="pplus">+</div><div class="pname">${s[0]}</div><div class="pr small">${POS_KO[s[0]]}</div>`}</div>`; }).join('');
   const matchesToday=(S.matchDay===todayStr()?S.matchCount:0)||0;
-  openModal(`<div class="squad"><div class="sq-left"><div class="sq-head"><h2>축구 대결 · 선발 명단</h2><div class="muted small">포지션 자리를 눌러 선수를 넣어요. 포지션이 다르면 능력치가 떨어져요(능력치 옆에 표시).</div></div>
+  openModal(`<div class="squad"><div class="sq-left"><div class="sq-head"><h2>축구 대결 · 선발 명단</h2><div class="muted small">자리를 눌러 선수를 넣어요. 주·서브 포지션이 맞으면 100%, 비슷한 자리는 조금, 다른 계열은 많이 떨어져요.</div></div>
     <div class="pitch"><div class="pline"></div><div class="pcircle"></div><div class="pbox top"></div><div class="pbox bot"></div>${pitch}</div></div>
     <div class="sq-right">
       <h3>포메이션</h3><div class="chips">${Object.keys(FORMATIONS).map(f=>`<button class="chip ${sq.formation===f?'on':''}" onclick="S.squad.formation='${f}';S.squad.slots=Array(11).fill(null);save();renderSquad()">${f}</button>`).join('')}</div>
@@ -59,15 +62,15 @@ function renderSquad(msg){
 }
 function pickSlot(i){
   const sq=squadOf(); const pos=FORMATIONS[sq.formation][i][0];
-  let mine=myCards().filter(c=>(c.kind||'player')==='player'||!c.kind).filter(c=>!sq.slots.includes(c.id)||sq.slots[i]===c.id);
+  let mine=myCards().filter(isPlayerCard).filter(c=>!sq.slots.includes(c.id)||sq.slots[i]===c.id);
   mine.sort((a,b)=>(posPenalty(a,pos)-posPenalty(b,pos))||(b.rating-a.rating));
   const w=squadWage(sq)-(sq.slots[i]?wage(CARDS[sq.slots[i]]):0);
-  openModal(`<div class="binder-head"><div><h2>${POS_KO[pos]} 자리에 넣을 선수</h2><div class="muted small">남은 예산 ${fmt(WAGE_CAP-w)}</div></div><div><button class="btn" onclick="S.squad.slots[${i}]=null;save();renderSquad()">비우기</button><button class="btn" onclick="renderSquad()">뒤로</button></div></div>
-    <div class="card-grid small" style="max-height:520px">${mine.map(c=>{ const pen=posPenalty(c,pos); const over=w+wage(c)>WAGE_CAP; const a=attrs(c); return `<div class="mini-card ${over?'dim':''}" onclick="${over?`toast('급여 예산을 넘어요')`:`S.squad.slots[${i}]='${c.id}';save();renderSquad()`}">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub">${POS_KO[c.pos]} ${c.rating}${pen?` → ${c.rating-pen} `:''}</div><div class="mc-sub">${a.trait.n} · ${fmt(wage(c))}</div></div>`; }).join('')||'<div class="muted">선수 카드가 없어요</div>'}</div>`,'wide');
+  openModal(`<div class="binder-head"><div><h2>${pos} · ${POS_KO[pos]} 자리에 넣을 선수</h2><div class="muted small">남은 예산 ${fmt(WAGE_CAP-w)}</div></div><div><button class="btn" onclick="S.squad.slots[${i}]=null;save();renderSquad()">비우기</button><button class="btn" onclick="renderSquad()">뒤로</button></div></div>
+    <div class="card-grid small" style="max-height:520px">${mine.map(c=>{ const pen=posPenalty(c,pos); const over=w+wage(c)>WAGE_CAP; const a=attrs(c); return `<div class="mini-card ${over?'dim':''}" onclick="${over?`toast('급여 예산을 넘어요')`:`S.squad.slots[${i}]='${c.id}';save();renderSquad()`}">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub">${posStr(c)} · ${c.rating}${pen?` → <b>${c.rating-pen}</b>`:''}</div><div class="mc-sub">${a.trait.n} · ${fmt(wage(c))}</div></div>`; }).join('')||'<div class="muted">선수 카드가 없어요</div>'}</div>`,'wide');
 }
 function autoSquad(){
   const sq=squadOf(); const F=FORMATIONS[sq.formation]; sq.slots=Array(11).fill(null); let w=0; const used=new Set();
-  const pool=myCards().filter(c=>!c.kind||c.kind==='player');
+  const pool=myCards().filter(isPlayerCard);
   // 포지션별로 급여 효율 좋은 선수부터, 예산 안에서 최고 능력치
   F.forEach((s,i)=>{ const cands=pool.filter(c=>!used.has(c.id)).sort((a,b)=>(posPenalty(a,s[0])-posPenalty(b,s[0]))||(b.rating-a.rating));
     const remainingSlots=F.length-i-1; for(const c of cands){ if(w+wage(c)+remainingSlots*300<=WAGE_CAP){ sq.slots[i]=c.id; used.add(c.id); w+=wage(c); break; } } });
@@ -77,10 +80,10 @@ function autoSquad(){
 function buildOpponent(f,sq){
   const my=sq.slots.map(id=>CARDS[id]); const avg=my.reduce((a,c)=>a+c.rating,0)/11;
   const form=Object.keys(FORMATIONS)[hashStr(f.id+todayStr())%5]; const F=FORMATIONS[form];
-  const all=Object.values(CARDS).filter(c=>(!c.kind||c.kind==='player')&&!c.edition);
-  const used=new Set(); const slots=F.map(s=>{ const target=avg+1.5+(Math.random()*6-3); let cands=all.filter(c=>c.pos===s[0]&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
+  const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition);
+  const used=new Set(); const slots=F.map(s=>{ const target=avg+1.5+(Math.random()*6-3); let cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
     if(Math.random()<0.5){ const liked=cands.filter(c=>f.likes.includes(c.nat)); if(liked.length) cands=liked; }
-    if(!cands.length) cands=all.filter(c=>c.pos===s[0]&&!used.has(c.name)).sort((a,b)=>Math.abs(a.rating-target)-Math.abs(b.rating-target)).slice(0,8);
+    if(!cands.length) cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)).sort((a,b)=>Math.abs(a.rating-target)-Math.abs(b.rating-target)).slice(0,8);
     const c=cands[Math.floor(Math.random()*cands.length)]; used.add(c.name); return c.id; });
   const style=Math.random()<0.65?OPP_TACTIC[f.id]:Object.keys(STYLES)[Math.floor(Math.random()*3)];
   const mental=['att','bal','def'][Math.floor(Math.random()*3)];
@@ -88,7 +91,7 @@ function buildOpponent(f,sq){
 }
 /* ---- 팀 전력 계산 ---- */
 function teamPower(team){
-  const F=FORMATIONS[team.formation]; const ps=F.map((s,i)=>({c:CARDS[team.slots[i]],pos:s[0],a:effAttrs(CARDS[team.slots[i]],s[0])}));
+  const F=FORMATIONS[team.formation]; const ps=F.map((s,i)=>({c:CARDS[team.slots[i]],pos:POS_GROUP[s[0]]||s[0],slot:s[0],a:effAttrs(CARDS[team.slots[i]],s[0])}));
   const nats={}; ps.forEach(p=>nats[p.c.nat]=(nats[p.c.nat]||0)+1); const chem=Math.min(6,Object.values(nats).reduce((a,n)=>a+(n>=2?n-1:0),0));
   const cap=ps.some(p=>p.a.trait.cap)?2:0;
   const gk=ps.find(p=>p.pos==='GK'); const df=ps.filter(p=>p.pos==='DF'), mf=ps.filter(p=>p.pos==='MF'), fw=ps.filter(p=>p.pos==='FW');
