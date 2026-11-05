@@ -2,13 +2,15 @@
 const AI_CLUBS=[
  ['서울 썬더','KOR','press'],['부산 웨이브','KOR','counter'],['김해 가야 FC','KOR','poss'],['도쿄 라이징','JPN','poss'],['상파울루 삼바','BRA','poss'],['리우 오션','BRA','counter'],
  ['마드리드 로얄','ESP','poss'],['바르사 블루','ESP','poss'],['런던 라이온스','ENG','press'],['맨체스터 스톰','ENG','press'],['베를린 아이언','GER','press'],['뮌헨 이글스','GER','poss'],
- ['파리 에툼알','FRA','counter'],['밀라노 네로','ITA','counter'],['암스테르담 오렌지','NED','poss'],['리스본 나비','POR','counter'],['부에노스 탱고','ARG','press'],['카사블랑카 아틀라스','MAR','counter'],
+ ['파리 에투알','FRA','counter'],['밀라노 네로','ITA','counter'],['암스테르담 오렌지','NED','poss'],['리스본 나비','POR','counter'],['부에노스 탱고','ARG','press'],['카사블랑카 아틀라스','MAR','counter'],
  ['카이로 파라오','EGY','counter'],['멕시코시티 아즈텍','MEX','press'],['LA 스타즈','USA','press'],['토론토 메이플','CAN','counter'],['오슬로 바이킹','NOR','press'],['자그레브 체커','CRO','poss'],
 ];
 const TIER_NAME={1:'1부 리그',2:'2부 리그',3:'3부 리그'}; const TIER_AVG={1:86,2:81,3:76};
-const DAILY_MATCHES=10;
+const DAILY_MATCHES=20, DAILY_CUP=3;
 function clubOf(){ if(!S.club){ S.club={name:S.name+' FC',tier:3,season:1,league:null,cup:null,history:[],trophies:{league:0,cup:0}}; } return S.club; }
-function matchesLeft(){ if(S.matchDay!==todayStr()){ S.matchDay=todayStr(); S.matchCount=0; } return DAILY_MATCHES-(S.matchCount||0); }
+function dayReset(){ if(S.matchDay!==todayStr()){ S.matchDay=todayStr(); S.matchCount=0; S.cupCount=0; S.cupWon=false; } }
+function matchesLeft(){ dayReset(); return DAILY_MATCHES-(S.matchCount||0); }
+function cupLeft(){ dayReset(); return S.cupWon?0:DAILY_CUP-(S.cupCount||0); }
 function clubStrength(idx,tier){ return TIER_AVG[tier]+((hashStr(AI_CLUBS[idx][0])%7)-3); }
 /* ---- 리그 ---- */
 function newSeason(){
@@ -28,10 +30,10 @@ function standings(L){ return L.teams.slice().sort((x,y)=>{ const a=L.table[x],b
 function buildClubTeam(idx,tier,bonus){
   const [name,nat,style]=AI_CLUBS[idx]; const avg=clubStrength(idx,tier)+(bonus||0);
   const form=Object.keys(FORMATIONS)[hashStr(name)%5]; const F=FORMATIONS[form];
-  const all=Object.values(CARDS).filter(c=>(!c.kind||c.kind==='player')&&!c.edition); const used=new Set();
-  const slots=F.map(s=>{ const target=avg+(Math.random()*6-3); let cands=all.filter(c=>c.pos===s[0]&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
+  const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition); const used=new Set();
+  const slots=F.map(s=>{ const target=avg+(Math.random()*6-3); let cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
     if(Math.random()<0.6){ const liked=cands.filter(c=>c.nat===nat); if(liked.length>=2) cands=liked; }
-    if(!cands.length) cands=all.filter(c=>c.pos===s[0]&&!used.has(c.name)).sort((a,b)=>Math.abs(a.rating-target)-Math.abs(b.rating-target)).slice(0,8);
+    if(!cands.length) cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)).sort((a,b)=>Math.abs(a.rating-target)-Math.abs(b.rating-target)).slice(0,8);
     const c=cands[Math.floor(Math.random()*cands.length)]; used.add(c.name); return c.id; });
   return {name,formation:form,style:Math.random()<0.7?style:Object.keys(STYLES)[Math.floor(Math.random()*3)],mental:['att','bal','def'][Math.floor(Math.random()*3)],slots};
 }
@@ -71,16 +73,17 @@ function newCup(){ const c=clubOf(); const used=new Set(); const opps=[]; while(
 function playCup(){
   const c=clubOf(); if(!c.cup||c.cup.done||c.cup.out) newCup(); const C=c.cup;
   const err=squadReady(); if(err) return toast(err+' (스쿼드 편집에서)');
-  if(matchesLeft()<=0) return toast('오늘 경기 횟수를 다 썼어요. 내일 다시!');
+  if(S.cupWon&&cupLeft()<=0) return toast('오늘은 이미 FA컵 우승! 내일 다시 도전해요');
+  if(cupLeft()<=0) return toast('오늘 FA컵 경기 3번을 다 했어요. 내일 다시!');
   const w=squadWage(squadOf()); if(S.money<w) return toast(`급여 ${fmt(w)}이 부족해요.`);
-  S.money-=w; S.matchCount++; save();
+  S.money-=w; S.cupCount=(S.cupCount||0)+1; save();
   const tier=[3,2,2,1][C.round]; const away=buildClubTeam(C.opps[C.round],tier, C.round===3?2:0);
   startMatch(away,{kind:'cup',wages:w,label:`FA컵 ${C.no}회 ${CUP_ROUNDS[C.round]}`,onEnd:r=>{
     let html='';
     if(r.win||(r.draw&&Math.random()<0.5)){ const pk=r.draw; const reward=CUP_PRIZE[C.round]+Math.round(w*1.2); S.money+=reward;
       html=`<div class="price">+${fmt(reward-w)}</div><div class="muted small">${pk?'승부차기 승리! ':''}${CUP_ROUNDS[C.round]} 통과 상금 ${fmt(CUP_PRIZE[C.round])} + 급여 보전</div>`;
       logIt(`FA컵 ${CUP_ROUNDS[C.round]} ${r.away.name} ${r.hs}:${r.as} 통과 (+${fmt(reward)})`);
-      C.round++; if(C.round>=4){ C.done=true; c.trophies.cup++; const pool=Object.values(CARDS).filter(x=>(x.rar==='G'||x.rar==='L')&&!x.edition); const b=pool[Math.floor(Math.random()*pool.length)]; addCard(S,b.id); html+=`<div class="season-end"><b>FA컵 우승!</b><div>보상 카드: <b>${b.name}</b> (${RARITY[b.rar].n})</div></div>`; logIt(`FA컵 우승! 보상 카드 ${b.name}`); }
+      C.round++; if(C.round>=4){ C.done=true; S.cupWon=true; c.trophies.cup++; const pool=Object.values(CARDS).filter(x=>(x.rar==='G'||x.rar==='L')&&!x.edition); const b=pool[Math.floor(Math.random()*pool.length)]; addCard(S,b.id); html+=`<div class="season-end"><b>FA컵 우승!</b><div>보상 카드: <b>${b.name}</b> (${RARITY[b.rar].n})</div></div>`; logIt(`FA컵 우승! 보상 카드 ${b.name}`); }
     } else { C.out=true; html=`<div class="price" style="color:#b91c1c">-${fmt(w)}</div><div class="muted small">${r.draw?'승부차기 패배… ':''}${CUP_ROUNDS[C.round]}에서 탈락했어요. 다음 컵에 다시 도전!</div>`; logIt(`FA컵 ${CUP_ROUNDS[C.round]} ${r.away.name} ${r.hs}:${r.as} 탈락`); }
     save(); return {html};
   }});
@@ -99,12 +102,12 @@ function renderClubPanels(){
   if(!c.league) newSeason(); const L=c.league; const st=standings(L); const next=L.md<L.fixtures.length?L.fixtures[L.md].find(m=>m.h==='ME'||m.a==='ME'):null; const oppId=next?(next.h==='ME'?next.a:next.h):null;
   document.getElementById('ai-league-panel').innerHTML=`<table class="ltable"><tr><th>#</th><th>팀</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${st.map((t,i)=>{ const r=L.table[t]; return `<tr class="${t==='ME'?'me':''} ${i<2&&c.tier>1?'up':''} ${i>=6&&c.tier<3?'down':''}"><td>${i+1}</td><td>${leagueName(t)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`; }).join('')}</table>
     <div class="next"><div><div class="muted small">다음 경기 · ${L.md+1}/${L.fixtures.length}라운드</div><b>${oppId!==null?`vs ${leagueName(oppId)} (${TIER_AVG[L.tier]+((hashStr(AI_CLUBS[oppId][0])%7)-3)})`:'시즌 종료'}</b></div><button class="btn primary" onclick="playLeague()" ${err?'disabled':''}>경기하기</button></div>
-    <div class="muted small">오늘 남은 경기 ${matchesLeft()}/${DAILY_MATCHES} · 급여 ${fmt(w)} 지출, 승리 시 ${fmt(Math.round(w*1.3)+3000+(L.tier===1?3000:L.tier===2?1500:0))}</div>`;
+    <div class="muted small">오늘 남은 연습 리그 경기 ${matchesLeft()}/${DAILY_MATCHES} · 급여 ${fmt(w)} 지출, 승리 시 ${fmt(Math.round(w*1.3)+3000+(L.tier===1?3000:L.tier===2?1500:0))}</div>`;
   // cup
   const C=c.cup; const active=C&&!C.done&&!C.out;
   document.getElementById('cup-panel').innerHTML=`<div class="bracket">${CUP_ROUNDS.map((r,i)=>`<div class="br ${active&&C.round===i?'now':''} ${C&&(C.round>i||(C.done))?'done':''} ${C&&C.out&&C.round===i?'lost':''}">${r}${C&&C.opps&&(C.round>i||C.done||(C.out&&C.round===i)||(active&&C.round===i))?`<small>${AI_CLUBS[C.opps[i]][0]}</small>`:'<small>?</small>'}</div>`).join('')}</div>
-    <div class="next"><div>${active?`<div class="muted small">FA컵 ${C.no}회 · ${CUP_ROUNDS[C.round]}</div><b>vs ${AI_CLUBS[C.opps[C.round]][0]}</b>`:C&&C.done?`<b>FA컵 ${C.no}회 우승</b><div class="muted small">새 컵에 도전할 수 있어요</div>`:C&&C.out?`<b>FA컵 ${C.no}회 탈락</b><div class="muted small">새 컵에 다시 도전!</div>`:'<b>FA컵 도전</b><div class="muted small">16강부터 4경기 토너먼트</div>'}</div><button class="btn primary" onclick="playCup()" ${err?'disabled':''}>${active?'경기하기':'새 컵 시작'}</button></div>
-    <div class="muted small">라운드 상금 ${CUP_PRIZE.map(fmt).join(' → ')} · 우승 시 골드/레전드 카드</div>
+    <div class="next"><div>${active?`<div class="muted small">FA컵 ${C.no}회 · ${CUP_ROUNDS[C.round]}</div><b>vs ${AI_CLUBS[C.opps[C.round]][0]}</b>`:C&&C.done?`<b>FA컵 ${C.no}회 우승</b><div class="muted small">새 컵에 도전할 수 있어요</div>`:C&&C.out?`<b>FA컵 ${C.no}회 탈락</b><div class="muted small">새 컵에 다시 도전!</div>`:'<b>FA컵 도전</b><div class="muted small">16강부터 4경기 토너먼트</div>'}</div><button class="btn primary" onclick="playCup()" ${err||cupLeft()<=0?'disabled':''}>${active?'경기하기':'새 컵 시작'}</button></div>
+    <div class="muted small">라운드 상금 ${CUP_PRIZE.map(fmt).join(' → ')} · 우승 시 골드/레전드 카드 · 오늘 남은 컵 경기 ${cupLeft()}/${DAILY_CUP}${S.cupWon?' (오늘 우승! 내일 다시)':''}</div>
     <div class="chips" style="margin-top:8px">${FRIENDS.map(f=>`<button class="chip" onclick="playFriendly('${f.id}')">친선 · ${f.name}</button>`).join('')}</div>`;
 }
 function renameClub(){ const n=prompt('클럽 이름',clubOf().name); if(n&&n.trim()){ clubOf().name=n.trim().slice(0,14); save(); renderHome(); } }
