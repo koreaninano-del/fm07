@@ -4,7 +4,7 @@ let DB={profiles:[],current:-1};
 let S=null; // 현재 프로필
 const ui={modalOpen:false};
 const fmt=n=>n.toLocaleString('ko-KR')+'원';
-const todayStr=()=>new Date().toISOString().slice(0,10);
+const todayStr=()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 function load(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(raw) DB=JSON.parse(raw);}catch(e){}
   // 더 이상 없는 카드(이전 버전 픽셀 카드) 정리
   DB.profiles.forEach(p=>{ Object.keys(p.cards).forEach(id=>{ if(!CARDS[id]) delete p.cards[id]; }); Object.keys(p.friends||{}).forEach(f=>{ if(p.friends[f].some(id=>!CARDS[id])) delete p.friends[f]; }); }); }
@@ -149,7 +149,7 @@ function cardDetail(id,back){
   const c=CARDS[id]; const sell=Math.round(c.price*0.6/100)*100; const set=SETS.find(s=>s.id===c.set);
   openModal(`<div class="detail"><div class="detail-card rar-${c.rar}">${cardSVG(c,240)}</div><div class="detail-info"><div class="muted">${set.name}</div><h2>${c.name}</h2>
     <div class="muted">${String(c.no).padStart(3,'0')}/${c.total} · <span style="color:${RARITY[c.rar].color};font-weight:bold">${RARITY[c.rar].n}</span></div>
-    <div class="stat-row"><span>국가</span><b>${NATIONS[c.nat].n}</b></div><div class="stat-row"><span>포지션</span><b>${POS_KO[c.pos]}</b></div><div class="stat-row"><span>능력치</span><b>${c.rating}</b></div>${c.dob?`<div class="stat-row"><span>생년월일</span><b>${c.dob.split('-').reverse().join('.')}</b></div><div class="stat-row"><span>키 / 몸무게</span><b>${c.h.replace(',','.')} m / ${c.w} kg</b></div>`:''}${c.kind==='player'||!c.kind?attrHTML(c):''}${c.edition?`<div class="stat-row"><span>에디션</span><b>${EDITION_INFO[c.edition].n}</b></div>`:''}${c.award?`<div class="stat-row"><span>수상</span><b>${c.award}</b></div>`:''}${c.club?`<div class="stat-row"><span>소속 클럽</span><b style="font-size:12px">${c.club}</b></div>`:''}<div class="stat-row"><span>보유</span><b>${S.cards[c.id]||0}장</b></div><div class="stat-row"><span>시세</span><b>${fmt(c.price)}</b></div>
+    <div class="stat-row"><span>국가</span><b>${NATIONS[c.nat].n}</b></div><div class="stat-row"><span>포지션</span><b>${c.pp?`${c.pp[0]} <span class="muted small">${POS_KO[c.pp[0]]}</span>${c.pp.length>1?` · 서브 ${c.pp.slice(1).join(', ')}`:''}`:POS_KO[c.pos]}</b></div><div class="stat-row"><span>능력치</span><b>${c.rating}</b></div>${c.dob?`<div class="stat-row"><span>생년월일</span><b>${c.dob.split('-').reverse().join('.')}</b></div><div class="stat-row"><span>키 / 몸무게</span><b>${c.h.replace(',','.')} m / ${c.w} kg</b></div>`:''}${c.kind==='player'||!c.kind?attrHTML(c):''}${c.edition?`<div class="stat-row"><span>에디션</span><b>${EDITION_INFO[c.edition].n}</b></div>`:''}${c.award?`<div class="stat-row"><span>수상</span><b>${c.award}</b></div>`:''}${c.club?`<div class="stat-row"><span>소속 클럽</span><b style="font-size:12px">${c.club}</b></div>`:''}<div class="stat-row"><span>보유</span><b>${S.cards[c.id]||0}장</b></div><div class="stat-row"><span>시세</span><b>${fmt(c.price)}</b></div>
     <div class="row"><button class="btn" onclick="${back}()">돌아가기</button>${S.cards[c.id]?`<button class="btn primary" onclick="sellCard('${c.id}','${back}')">상인에게 판매 (${fmt(sell)})</button>`:''}</div></div></div>`);
 }
 function sellCard(id,back){ const c=CARDS[id]; if(!S.cards[id]) return; const sell=Math.round(c.price*0.6/100)*100; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
@@ -177,7 +177,7 @@ function renderTrade(msg){
   const f=tr.friend; const theirs=friendCards(f).map(id=>CARDS[id]); const mine=myCards();
   const mv=tr.mine?CARDS[tr.mine].price:0, tv=tr.theirs?friendValue(f,CARDS[tr.theirs]):0;
   const ok=tr.mine&&tr.theirs&&friendValue(f,CARDS[tr.mine])>=tv*0.85;
-  const pick=(c,who,sel,cnt)=>`<div class="mini-card ${sel?'sel':''}" onclick="tr.${who}='${c.id}';renderTrade()">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub">${fmt(c.price)}${cnt?` · ×${cnt}`:''}${f.likes.includes(c.nat)&&who==='mine'?' · 선호':''}</div></div>`;
+  const pick=(c,who,sel,cnt)=>`<div class="mini-card ${sel?'sel':''}" onclick="tr.${who}='${c.id}';renderTrade()">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub"><b>${c.rating}</b> ${isPlayerCard(c)?posStr(c):''}</div><div class="mc-sub">${fmt(c.price)}${cnt?` · ×${cnt}`:''}${f.likes.includes(c.nat)&&who==='mine'?' · 선호':''}</div></div>`;
   openModal(`<div class="trade"><div class="trade-col"><h3>내 카드</h3><div class="card-grid small">${mine.map(c=>pick(c,'mine',tr.mine===c.id,S.cards[c.id])).join('')}</div></div>
     <div class="trade-mid"><div class="f-avatar big" style="background:${f.avatar[0]}">${f.name[0]}</div><b>${f.name}</b><div class="bubble small">${msg||(tr.mine&&tr.theirs?(ok?'좋아, 바꾸자!':'음… 내 카드가 더 좋은 것 같은데?'):'바꿀 카드를 하나씩 골라 봐.')}</div>
       <div class="trade-slots"><div class="tslot">${tr.mine?cardSVG(CARDS[tr.mine],90):'<div class="muted small">내 카드</div>'}</div><div class="arrow">⇄</div><div class="tslot">${tr.theirs?cardSVG(CARDS[tr.theirs],90):'<div class="muted small">친구 카드</div>'}</div></div>
