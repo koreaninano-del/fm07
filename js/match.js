@@ -30,7 +30,7 @@ const POS_NEAR={'LB:LWB':2,'RB:RWB':2,'LB:RB':4,'LWB:RWB':4,'CB:LB':6,'CB:RB':6,
 function posDist(p,slot){ if(p===slot) return 0; const k=POS_NEAR[p+':'+slot]??POS_NEAR[slot+':'+p]; if(k!==undefined) return k; const g1=POS_GROUP[p]||p,g2=POS_GROUP[slot]||slot; if(g1==='GK'||g2==='GK') return 25; if(g1===g2) return 8; if((g1==='DF'&&g2==='FW')||(g1==='FW'&&g2==='DF')) return 16; return 11; }
 const STYLES={press:{n:'강한 압박',d:'높은 위치에서 공을 뺏어요. 점유 상대에 강하고, 역습에 약해요',beats:'poss'},poss:{n:'점유 축구',d:'공을 오래 가지고 천천히 공격해요. 역습 상대에 강하고, 압박에 약해요',beats:'counter'},counter:{n:'역습',d:'내려앉았다가 빠르게 찔러요. 압박 상대에 강하고, 점유에 약해요',beats:'press'}};
 const MENTAL={att:{n:'공격적',a:1.18,d:0.84},bal:{n:'균형',a:1,d:1},def:{n:'수비적',a:0.84,d:1.18}};
-const WAGE_CAP=25000, PRIZE_MATCHES=5;
+const WAGE_CAP=30000, PRIZE_MATCHES=5;
 const OPP_TACTIC={minjun:'press',seoyeon:'poss',jiho:'counter'};
 function squadOf(){ if(!S.squad) S.squad={formation:'4-3-3',style:'press',mental:'bal',slots:Array(11).fill(null)}; if(!S.squad.slots||S.squad.slots.length!==11) S.squad.slots=Array(11).fill(null); S.squad.slots=S.squad.slots.map(id=>id&&CARDS[id]&&S.cards[id]?id:null); return S.squad; }
 function squadWage(sq){ return sq.slots.reduce((a,id)=>a+(id?wage(CARDS[id]):0),0); }
