@@ -2,7 +2,7 @@
 const BOX_PER_DAY=3, ADMIN_ID='hyun';
 function isAdmin(){ return Account.id===ADMIN_ID; }
 function boxLeft(){ if(S.boxDay!==todayStr()){ S.boxDay=todayStr(); S.boxCount=0; } return BOX_PER_DAY-(S.boxCount||0); }
-function boxPool(min,max,ultra){ return Object.values(CARDS).filter(c=>(c.kind==='player'||!c.kind)&&(ultra?c.ultra:(!c.edition&&c.rating>=min&&c.rating<=max))); }
+function boxPool(min,max,ultra){ return Object.values(CARDS).filter(c=>isPlayerCard(c)&&(ultra?c.ultra:(!c.edition&&c.rating>=min&&c.rating<=max))); }
 function rollBox(){
   const r=Math.random(); const rnd=(a,b)=>Math.round((a+Math.random()*(b-a))/1000)*1000;
   if(r<0.50) return {money:rnd(10000,30000),tier:'보통'};
