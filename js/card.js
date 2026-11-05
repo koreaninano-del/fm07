@@ -81,7 +81,7 @@ var cardSVG=function(card, w){
     <text x="${w/2}" y="${sBot+17*k}" font-size="${nameSize}" font-family="sans-serif" font-weight="800" text-anchor="middle" fill="#1f2a24">${card.name}</text>
     ${flag}
     <text x="${48*k}" y="${fy+9*k}" font-size="${9*k}" font-family="sans-serif" font-weight="bold" fill="#333">${nat.n}</text>
-    <text x="${48*k}" y="${fy+19*k}" font-size="${8*k}" font-family="sans-serif" fill="#666">${POS_KO[card.pos]} · No.${card.num}</text>
+    <text x="${48*k}" y="${fy+19*k}" font-size="${8*k}" font-family="sans-serif" fill="#666">${card.pp?card.pp.join('/'):POS_KO[card.pos]} · No.${card.num}</text>
     <circle cx="${w-30*k}" cy="${fy+10*k}" r="${15*k}" fill="${set.theme[0]}"/><circle cx="${w-30*k}" cy="${fy+10*k}" r="${12*k}" fill="#fff"/>
     <text x="${w-30*k}" y="${fy+15*k}" font-size="${13*k}" font-family="sans-serif" font-weight="900" text-anchor="middle" fill="${set.theme[0]}">${card.rating}</text>
     <text x="${w/2}" y="${h-11*k}" font-size="${8*k}" font-family="sans-serif" text-anchor="middle" fill="${R.color}" font-weight="bold">${'★'.repeat(stars)} ${R.n}</text>
@@ -123,7 +123,7 @@ function stickerSVG(card,w){
     const parts=card.name.split(' '); const last=parts.length>1?parts.pop():''; const first=parts.join(' ');
     const nameSize=(card.name.length>9?11:card.name.length>7?13:15)*k;
     const nameT=`<text x="${w/2}" y="${h*0.62+18*k}" font-size="${nameSize}" font-family="sans-serif" text-anchor="middle" fill="#fff"><tspan font-weight="500">${esc(first)}</tspan>${last?` <tspan font-weight="900">${esc(last)}</tspan>`:''}</text>`;
-    const info = card.dob? `${card.dob} | ${card.h.replace(',','.')} m | ${card.w} kg` : `${POS_KO[card.pos]} · 능력치 ${card.rating}`;
+    const info = card.dob? `${card.dob} | ${card.h.replace(',','.')} m | ${card.w} kg` : `${card.pp?card.pp.join('/'):POS_KO[card.pos]} · 능력치 ${card.rating}`;
     const band2=`<rect x="${20*k}" y="${h*0.62+30*k}" width="${w-40*k}" height="${18*k}" rx="${9*k}" fill="#fff" opacity=".9"/><text x="${w/2}" y="${h*0.62+43*k}" font-size="${8.5*k}" font-family="sans-serif" text-anchor="middle" fill="#222">${esc(info)}</text>`;
     const club = card.club || (kind==='legend'?'LEGEND':kind==='special'?'SPECIAL':NATIONS[card.nat].n);
     const band3=`<rect x="${12*k}" y="${h-36*k}" width="${w-24*k-44*k}" height="${18*k}" rx="${9*k}" fill="${gold?'#5a3a00':'#15323a'}"/><text x="${(w-44*k)/2}" y="${h-23*k}" font-size="${(club.length>22?6:7.5)*k}" font-family="sans-serif" font-weight="bold" text-anchor="middle" fill="#fff">${esc(club)}</text>`;
@@ -184,6 +184,7 @@ const EDITION_INFO={
 const RAR_INK={C:'#b4b4b4',R:'#111111',H:'#06202e',G:'#2b1d05',L:'#1b2607'};
 const RAR_BG={C:'#2a2a2a',R:'#e6e6e6',H:'#4cb3f0',G:'#e5a93b',L:'#c6f24e'};
 function sparkleSVG(x,y,r,op){ return `<path d="M${x} ${y-r} Q${x} ${y} ${x+r} ${y} Q${x} ${y} ${x} ${y+r} Q${x} ${y} ${x-r} ${y} Q${x} ${y} ${x} ${y-r}Z" fill="#fff" opacity="${op}"/>`; }
+
 /* ====== 울트라 레어 카드: 누끼 컷아웃 + 에디션 배경 ====== */
 const ULTRA_THEME={
   XI:{bg:['#0b1a06','#3f6b12','#c6f24e'],ray:'#e4ffb0',label:'베스트 XI',tag:'ULTRA'},
@@ -227,7 +228,7 @@ function ultraCardSVG(card,w){
      <rect x="${bw}" y="${photoH}" width="${w-2*bw}" height="${foot-bw}" fill="${th.bg[0]}" opacity=".92"/>
      <rect x="${bw}" y="${photoH}" width="${w-2*bw}" height="${2*k}" fill="url(#mt${uid})"/>
      <text x="${12*k}" y="${photoH+17*k}" font-size="${12*k}" font-family="Inter, sans-serif" font-weight="700" fill="#fff">${esc(first)}</text>
-     <text x="${12*k}" y="${photoH+31*k}" font-size="${7.5*k}" font-family="Inter, sans-serif" font-weight="500" fill="${th.bg[2]}">${esc(sub)} · ${esc(N.n)} ${POS_KO[card.pos]||''}</text>
+     <text x="${12*k}" y="${photoH+31*k}" font-size="${7.5*k}" font-family="Inter, sans-serif" font-weight="500" fill="${th.bg[2]}">${esc(sub)} · ${esc(N.n)} ${card.pp?card.pp[0]:(POS_KO[card.pos]||'')}</text>
      <text x="${w-12*k}" y="${photoH+28*k}" font-size="${24*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="end" fill="${th.bg[2]}">${card.rating}</text>
    </g>
    <rect x="${bw}" y="${bw}" width="${44*k}" height="${13*k}" rx="${3*k}" fill="${th.bg[2]}"/>
