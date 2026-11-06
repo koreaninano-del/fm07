@@ -1,6 +1,7 @@
 /* ====== 가족 리그 · 가족 트레이드 (Firestore 공유) ====== */
 const FAM_AI=[{uid:'ai_seoul',name:'서울 썬더',idx:0,str:78},{uid:'ai_busan',name:'부산 웨이브',idx:1,str:76},{uid:'ai_gimhae',name:'김해 가야 FC',idx:2,str:80}];
-const Fam={clubs:{},results:[],trades:[],season:null,unsubTrades:null,timer:null,loaded:false};
+const Fam={clubs:{},results:[],trades:[],season:null,unsubTrades:null,timer:null,loaded:false,banned:{}};
+function famBanned(uid){ return !!(Fam.banned&&Fam.banned[uid||Account.uid]); }
 function famOn(){ return Account.mode==='cloud'&&Account.uid; }
 function famDB(){ return Account.fb.db; }
 /* 주간 시즌: 월요일 시작 ~ 일요일 종료 */
@@ -44,8 +45,11 @@ function famPublish(){
 async function famLoad(){
   if(!famOn()) return;
   const db=famDB(); const sk=seasonKey();
-  const [cs,rs]=await Promise.all([db.collection('clubs').get(),db.collection('results').where('season','==',sk).get()]);
-  Fam.clubs={}; cs.forEach(d=>{ Fam.clubs[d.id]=d.data(); });
+  try{ await accountReconcile(); }catch(e){ console.warn('reconcile',e); }
+  const [cs,rs,ad]=await Promise.all([db.collection('clubs').get(),db.collection('results').where('season','==',sk).get(),db.collection('admin').doc('league').get().catch(()=>null)]);
+  Fam.banned=(ad&&ad.exists&&ad.data().banned)||{};
+  Fam.clubs={}; cs.forEach(d=>{ if(!Fam.banned[d.id]||d.id===Account.uid) Fam.clubs[d.id]=d.data(); });
+  famWelcome();
   Fam.results=rs.docs.map(d=>Object.assign({_id:d.id},d.data()));
   Fam.season=sk; Fam.loaded=true;
   try{ if(await famSimAI()>0){ const rs2=await db.collection('results').where('season','==',sk).get(); Fam.results=rs2.docs.map(d=>Object.assign({_id:d.id},d.data())); } }catch(e){ console.warn(e); }
@@ -58,7 +62,7 @@ async function famLoad(){
 }
 function famRefreshSoon(){ if(famOn()) famLoad().catch(e=>console.warn(e)); }
 /* ---- 순위표 ---- */
-function famTeams(){ const list=Object.values(Fam.clubs).map(c=>({uid:c.uid,name:c.name,owner:c.owner,rating:c.rating,ready:c.ready,human:true})); FAM_AI.forEach(a=>list.push({uid:a.uid,name:a.name,rating:a.str,ready:true,human:false})); return list; }
+function famTeams(){ const list=Object.values(Fam.clubs).filter(c=>!Fam.banned[c.uid]).map(c=>({uid:c.uid,name:c.name,owner:c.owner,rating:c.rating,ready:c.ready,human:true})); FAM_AI.forEach(a=>list.push({uid:a.uid,name:a.name,rating:a.str,ready:true,human:false})); return list; }
 function famTable(){
   const T={}; famTeams().forEach(t=>T[t.uid]={t,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
   Fam.results.forEach(r=>{ const h=T[r.home],a=T[r.away]; if(!h||!a) return; h.p++;a.p++;h.gf+=r.hs;h.ga+=r.as;a.gf+=r.as;a.ga+=r.hs; if(r.hs>r.as){h.w++;a.l++;h.pts+=3;} else if(r.hs<r.as){a.w++;h.l++;a.pts+=3;} else {h.d++;a.d++;h.pts++;a.pts++;} });
@@ -72,7 +76,14 @@ function famOpponentTeam(uid){
   const c=Fam.clubs[uid]; if(!c||!c.ready||!c.squad||c.squad.slots.some(id=>!id||!CARDS[id])) return null;
   return {name:c.name,formation:c.squad.formation,style:c.squad.style,mental:c.squad.mental,slots:c.squad.slots.slice()};
 }
+/* 시즌 중간에 들어온 계정 지원: 다른 가족 클럽이 이미 있으면 처음 한 번 200,000원 + 기록 */
+function famWelcome(){
+  if(!S||S.famWelcome) return; const others=Object.values(Fam.clubs).filter(c=>c.uid!==Account.uid).length;
+  S.famWelcome=true; if(others>=1&&(S.created||'')>='2026-11-06'){ S.money+=200000; logIt('신입 클럽 지원금 +200,000원 (가족 리그에 늦게 합류)'); toast('신입 클럽 지원금 200,000원을 받았어요!'); refreshHUD(); }
+  save();
+}
 function playFamily(uid){
+  if(!econOK()) return; if(famBanned()) return toast('관리자가 가족 리그 참가를 막아 두었어요');
   const err=squadReady(); if(err) return toast(err+' (스쿼드 편집에서)');
   if(famGamesLeft(uid)<=0) return toast('이 상대와는 이번 시즌 할 수 있는 경기를 다 했어요 (하루 1경기)');
   const away=famOpponentTeam(uid); if(!away) return toast('상대가 아직 스쿼드 11명을 다 채우지 않았어요');
@@ -101,6 +112,7 @@ function renderFamilyPanel(){
   const el=document.getElementById('league-panel'); if(!el) return;
   if(!famOn()){ el.innerHTML='<div class="empty">가족 리그는 클라우드 모드(사이트 접속 + Firebase 설정)에서만 열려요. 지금은 연습용 AI 리그를 아래에서 할 수 있어요.</div>'; return; }
   if(!Fam.loaded){ el.innerHTML='<div class="empty">가족 리그 불러오는 중</div>'; return; }
+  if(famBanned()){ el.innerHTML='<div class="empty">관리자가 이 계정의 가족 리그 참가를 막아 두었어요.</div>'; return; }
   const tbl=famTable(); const err=squadReady(); const w=squadWage(squadOf());
   const opps=tbl.filter(x=>x.t.uid!==Account.uid);
   el.innerHTML=`<div class="muted small" style="margin-bottom:8px">${seasonLabel(Fam.season)} · ${daysLeftInWeek()}일 남음 · 일요일 밤 순위로 상금, 1위는 골드 카드</div>
@@ -111,7 +123,7 @@ function renderFamilyPanel(){
 }
 /* ---- 가족 트레이드 ---- */
 let ft={to:null,offer:null,want:null};
-function famOthers(){ return Object.values(Fam.clubs).filter(c=>c.uid!==Account.uid); }
+function famOthers(){ return Object.values(Fam.clubs).filter(c=>c.uid!==Account.uid&&!Fam.banned[c.uid]); }
 function renderFamTradeTab(){
   if(!famOn()) return `<div class="empty">가족 트레이드는 클라우드 모드에서만 열려요.</div>`;
   const inbox=Fam.trades.filter(t=>t.to===Account.uid&&t.status==='open'); const out=Fam.trades.filter(t=>t.from===Account.uid&&t.status==='open');
@@ -133,12 +145,12 @@ function renderFamTrade(){
     <div class="trade-col"><h3>${c.name}의 카드 (받을 카드)</h3><div class="card-grid small">${theirs.map(x=>pick(x,'want',ft.want===x.id)).join('')||'<div class="muted small">상대 카드 정보가 아직 없어요</div>'}</div></div></div>`,'wide');
 }
 async function famPropose(){
-  const c=Fam.clubs[ft.to];
+  if(!econOK()) return; const c=Fam.clubs[ft.to];
   try{ await famDB().collection('trades').add({from:Account.uid,fromName:clubOf().name+' ('+S.name+')',to:ft.to,toName:c.name,offer:ft.offer,want:ft.want,status:'open',settled:false,t:Date.now()}); toast('제안을 보냈어요'); openTradeLobby('fam'); }
   catch(e){ toast('제안 실패: '+e.message); }
 }
 async function famAccept(id){
-  const t=Fam.trades.find(x=>x._id===id); if(!t) return;
+  if(!econOK()) return; const t=Fam.trades.find(x=>x._id===id); if(!t) return;
   if(!S.cards[t.want]) return toast('내게 그 카드가 이제 없어요');
   try{ await famDB().collection('trades').doc(id).update({status:'accepted',acceptedAt:Date.now()});
     removeCard(S,t.want); addCard(S,t.offer); S.stats.trades++; logIt(`${t.fromName}과(와) 교환: ${CARDS[t.want].name} → ${CARDS[t.offer].name}`); refreshHUD(); toast(`${CARDS[t.offer].name} 카드를 받았어요`); openTradeLobby('fam'); }
