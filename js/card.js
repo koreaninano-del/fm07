@@ -235,7 +235,32 @@ function ultraCardSVG(card,w){
    <text x="${bw+22*k}" y="${bw+9.5*k}" font-size="${7*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="${th.bg[0]}" letter-spacing="1">${th.tag}</text>
    <text x="${w-bw-4*k}" y="${bw+10*k}" font-size="${7*k}" font-family="Inter, sans-serif" font-weight="600" text-anchor="end" fill="#fff" opacity=".85">${String(card.no).padStart(3,'0')} / ${card.total}</text></svg>`;
 }
+/* ---- 아이콘 카드: 상아색 바탕 + 금빛 마블 사선, 얼굴 사진, 능력치 6개 ---- */
+function iconCardSVG(card,w){
+  const h=Math.round(w*1.4); const k=w/200; const uid='k'+hashStr(card.id)+Math.floor(Math.random()*1e6);
+  const img=IMG[card.img||card.id]||''; const a=card.a||{}; const N=NATIONS[card.nat];
+  const stats=['pac','sho','pas','dri','def','phy']; const sx=14*k, sw=(w-28*k)/6;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="card-svg rar-I icon">
+  <defs><clipPath id="${uid}c"><path d="M${16*k},0 H${w-16*k} Q${w},0 ${w},${16*k} V${h-24*k} L${w/2},${h} L0,${h-24*k} V${16*k} Q0,0 ${16*k},0 Z"/></clipPath>
+    <linearGradient id="${uid}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf7ea"/><stop offset=".5" stop-color="#f3ecd6"/><stop offset="1" stop-color="#e9dfbf"/></linearGradient>
+    <linearGradient id="${uid}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e27a"/><stop offset=".35" stop-color="#d4af37"/><stop offset=".6" stop-color="#fff2b0"/><stop offset="1" stop-color="#b8860b"/></linearGradient>
+    <clipPath id="${uid}p"><rect x="${w*0.36}" y="${h*0.06}" width="${w*0.6}" height="${h*0.47}" rx="${6*k}"/></clipPath></defs>
+  <g clip-path="url(#${uid}c)"><rect width="${w}" height="${h}" fill="url(#${uid}g)"/>
+    <polygon points="${w*0.55},0 ${w},0 ${w},${h*0.42}" fill="url(#${uid}m)" opacity=".85"/><polygon points="${w*0.72},0 ${w},0 ${w},${h*0.2}" fill="#fff" opacity=".35"/>
+    <polygon points="0,${h*0.42} ${w*0.35},${h*0.62} 0,${h*0.7}" fill="url(#${uid}m)" opacity=".5"/>
+    <image href="${img}" x="${w*0.36}" y="${h*0.06}" width="${w*0.6}" height="${h*0.47}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${uid}p)"/>
+    <text x="${16*k}" y="${38*k}" font-size="${30*k}" font-family="Inter, sans-serif" font-weight="800" fill="#2b2415">${card.rating}</text>
+    <text x="${16*k}" y="${54*k}" font-size="${12*k}" font-family="Inter, sans-serif" font-weight="700" fill="#5a4a1a">${(card.pp||[card.pos])[0]}</text>
+    <g transform="translate(${16*k},${62*k})">${flagSVG(card.nat,22*k,15*k)}</g>
+    <rect x="0" y="${h*0.56}" width="${w}" height="${h*0.11}" fill="#2b2415" opacity=".06"/>
+    <text x="${w/2}" y="${h*0.64}" font-size="${(card.en||card.name).length>12?12*k:15*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#2b2415" letter-spacing="${1*k}">${esc(card.en||card.name)}</text>
+    <text x="${w/2}" y="${h*0.7}" font-size="${9*k}" font-family="sans-serif" text-anchor="middle" fill="#6b5a2a">${esc(card.name)} · ${N?N.n:''}</text>
+    ${stats.map((st,i)=>`<text x="${sx+sw*i+sw/2}" y="${h*0.79}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="#8a7430">${st.toUpperCase()}</text><text x="${sx+sw*i+sw/2}" y="${h*0.87}" font-size="${13*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#2b2415">${a[st]||''}</text>`).join('')}
+    <text x="${w/2}" y="${h*0.95}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="#b8860b" letter-spacing="${2*k}">ICON · ${String(card.no).padStart(2,'0')}/${card.total}</text>
+    <path d="M${16*k},${1.5*k} H${w-16*k} Q${w-1.5*k},${1.5*k} ${w-1.5*k},${16*k} V${h-24*k} L${w/2},${h-1.5*k} L${1.5*k},${h-24*k} V${16*k} Q${1.5*k},${1.5*k} ${16*k},${1.5*k} Z" fill="none" stroke="url(#${uid}m)" stroke-width="${3*k}"/></g></svg>`;
+}
 function imageCardSVG(card,w){
+  if(card.icon) return iconCardSVG(card,w);
   if(card.ultra&&typeof CUT!=='undefined'&&CUT[card.img||card.id]) return ultraCardSVG(card,w);
   const h=Math.round(w*1.33); const k=w/200; const R=RARITY[card.rar]; const uid='i'+hashStr(card.id)+Math.floor(Math.random()*1e6);
   const ed=card.edition?EDITION_INFO[card.edition]:null;
