@@ -66,7 +66,10 @@ async function accountResume(){ // 세션 유지 (클라우드: Firebase 세션,
 async function accountSaveNow(profile){
   profile=profile||S; if(!Account.uid||!profile) return;
   if(Account.mode==='cloud'){
-    await Account.fb.db.collection('saves').doc(Account.uid).set({id:Account.id,name:profile.name,data:JSON.stringify(profile),updated:Date.now()});
+    profile.rev=(profile.rev||0)+1;
+    const write=Account.fb.db.collection('saves').doc(Account.uid).set({id:Account.id,name:profile.name,data:JSON.stringify(profile),rev:profile.rev,updated:Date.now()});
+    try{ await Promise.race([write,new Promise((_,rej)=>setTimeout(()=>rej(new Error('save timeout')),10000))]); Account.saveErr=false; }
+    catch(e){ Account.saveErr=true; throw e; }
   } else { const acc=localAccounts(); if(acc[Account.id]){ acc[Account.id].data=profile; acc[Account.id].updated=Date.now(); saveLocalAccounts(acc); } }
   Account.dirty=false; setSyncState('ok'); if(typeof famPublish==='function') famPublish();
 }
@@ -84,6 +87,18 @@ async function accountChangePassword(oldPw,newPw){
     await u.reauthenticateWithCredential(cred).catch(()=>{ throw new Error('현재 비밀번호가 맞지 않아요'); }); await u.updatePassword(newPw);
   } else { const acc=localAccounts(); const a=acc[Account.id]; if(a.hash!==await sha256(a.salt+oldPw)) throw new Error('현재 비밀번호가 맞지 않아요'); a.salt=Math.random().toString(36).slice(2); a.hash=await sha256(a.salt+newPw); saveLocalAccounts(acc); }
 }
+/* 돈·카드가 바뀌는 행동은 인터넷이 연결되고 저장이 되는 상태에서만 (오프라인 복사 버그 방지) */
+function econOK(){ if(Account.mode!=='cloud') return true; if(!navigator.onLine){ toast('인터넷에 연결된 상태에서만 할 수 있어요'); return false; } if(Account.saveErr){ toast('저장이 안 되고 있어요. 인터넷을 확인한 뒤 다시 해 주세요'); return false; } return true; }
+/* 다른 기기(또는 다른 탭)에서 더 최신으로 저장했으면 그 데이터로 바꿈 */
+async function accountReconcile(){
+  if(Account.mode!=='cloud'||!Account.uid||!S) return false;
+  const snap=await Account.fb.db.collection('saves').doc(Account.uid).get(); if(!snap.exists) return false;
+  const d=snap.data(); if((d.rev||0)<=(S.rev||0)) return false;
+  const p=JSON.parse(d.data); Object.keys(p.cards||{}).forEach(id=>{ if(!CARDS[id]) delete p.cards[id]; });
+  DB.profiles=[p]; DB.current=0; S=p; Account.dirty=false; refreshHUD(); if(typeof renderHome==='function') try{ renderHome(); }catch(e){}
+  toast('다른 기기에서 저장된 최신 데이터를 불러왔어요'); return true;
+}
+window.addEventListener('online',()=>{ if(Account.dirty) accountSaveNow().catch(()=>{}); });
 function setSyncState(st){ const el=document.getElementById('sync'); if(!el) return; el.className='sync '+st; el.textContent= st==='ok'?(Account.mode==='cloud'?'클라우드 저장됨':'이 기기에 저장됨'): st==='pending'?'저장 중':'저장 실패 (인터넷 확인)'; }
 /* ---- 로그인 화면 ---- */
 function authError(msg){ const e=document.getElementById('auth-err'); if(e){ e.textContent=msg; e.style.display='block'; } }
