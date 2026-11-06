@@ -56,6 +56,9 @@ const NATIONS = {
   JOR:{n:'요르단',flag:['h','#000','#fff','#007a3d'],kit:['#fff','#ce1126'],sk:'#c68642'},
   COD:{n:'DR 콩고',flag:['h','#007fff','#f7d618','#ce1021','#f7d618','#007fff'],kit:['#0b4fd6','#f7d618'],sk:'#8d5524'},
   UZB:{n:'우즈베키스탄',flag:['h','#0099b5','#fff','#1eb53a'],kit:['#fff','#0099b5'],sk:'#e0ac69'},
+  HUN:{n:'헝가리',flag:['h','#ce2939','#fff','#477050'],kit:['#ce2939','#fff'],sk:'#f1c27d'},
+  NIR:{n:'북아일랜드',flag:['cross','#fff','#c8102e'],kit:['#0a7d3e','#fff'],sk:'#f1c27d'},
+  IRL:{n:'아일랜드',flag:['v','#169b62','#fff','#ff883e'],kit:['#169b62','#fff'],sk:'#f1c27d'},
   GHA:{n:'가나',flag:['h','#ce1126','#fcd116','#006b3f'],kit:['#fff','#ce1126'],sk:'#8d5524'},
   PAN:{n:'파나마',flag:['h','#fff','#005293','#da121a','#fff'],kit:['#da121a','#fff'],sk:'#c68642'},
   TUN:{n:'튀니지',flag:['circle','#e70013','#fff'],kit:['#fff','#e70013'],sk:'#c68642'},
@@ -81,9 +84,10 @@ const RARITY = {
   H:{n:'홀로',  base:3000, odds:8,  color:'#4cb3f0'},
   G:{n:'골드',  base:8000, odds:3,  color:'#e5a93b'},
   L:{n:'레전드',base:25000,odds:1,  color:'#c6f24e'},
+  I:{n:'아이콘',base:60000,odds:0,  color:'#d4af37'},
 };
 // [이름, 국가, 포지션, 능력치, 등급]
-const SETS = [...WC_SETS, ...EDITION_SETS, ...OLD_WC_SETS, ...OLD_EDITION_SETS];
+const SETS = [...WC_SETS, ...EDITION_SETS, ...OLD_WC_SETS, ...OLD_EDITION_SETS, ...(typeof ICON_SETS!=='undefined'?ICON_SETS:[])];
 SETS.forEach(s=>{ s.short=s.short.replace('WC26 스티커 ','2026 ').replace('WC26 ','2026 ').replace('WC14 ','2014 ').replace('WC18 ','2018 '); });
 const CARDS = {};
 SETS.forEach(set=>{
@@ -94,7 +98,8 @@ SETS.forEach(set=>{
     const price = Math.max(500, Math.round(RARITY[rar].base * (1+Math.max(0,rating-70)/40) * (o.mult||1) /100)*100);
     const c = Object.assign({}, o, {id,set:set.id,no:i+1,total:set.players.length,name,nat,pos,rating,rar,price,
       style:set.style||'classic', num: ((rating*7+i*13)%23)+1});
-    if(isPlayerCard(c)){ const pk=(typeof POSD!=='undefined'&&(POSD[o.img||id]||POSD_BYNAME[nat+'|'+name]))||''; c.pp=pk?pk.split(','):[POS_DEFAULT[c.pos]||'CM']; c.pos=POS_GROUP[c.pp[0]]||c.pos; if(pk&&!POSD_BYNAME[nat+'|'+name]) POSD_BYNAME[nat+'|'+name]=pk; }
+    if(o.pp&&!c.pp) c.pp=o.pp.slice();
+    if(isPlayerCard(c)&&!o.pp){ const pk=(typeof POSD!=='undefined'&&(POSD[o.img||id]||POSD_BYNAME[nat+'|'+name]))||''; c.pp=pk?pk.split(','):[POS_DEFAULT[c.pos]||'CM']; c.pos=POS_GROUP[c.pp[0]]||c.pos; if(pk&&!POSD_BYNAME[nat+'|'+name]) POSD_BYNAME[nat+'|'+name]=pk; }
     if(c.kind==='emblem') c.name=NATIONS[nat].n+' 엠블럼';
     if(c.kind==='team') c.name=NATIONS[nat].n+' 대표팀';
     c.img = o.img || id;
@@ -113,5 +118,6 @@ SETS.forEach(set=>{
     let v=0; pool.forEach(r=>{ let cs=set.cards.filter(c=>c.rar===r); if(!cs.length) cs=set.cards; v+= (RARITY[r].odds/tot) * cs.reduce((a,c)=>a+c.price,0)/cs.length; }); return v; };
   let total=ev('C')*5+ev('R');
   if(set.guar){ const g=set.cards.filter(c=>set.guar(c)); total=ev('C')*5+g.reduce((a,c)=>a+c.price,0)/g.length; }
-  set.ev=Math.round(total); set.price=Math.ceil(total*1.15/500)*500;
+  set.ev=Math.round(total); set.price=set.fixedPrice||Math.ceil(total*1.15/500)*500;
+  if(set.style==='icon'){ set.ev=Math.round(set.cards.reduce((a,c)=>a+c.price,0)/set.cards.length+5*6000); }
 });
