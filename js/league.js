@@ -30,7 +30,7 @@ function standings(L){ return L.teams.slice().sort((x,y)=>{ const a=L.table[x],b
 function buildClubTeam(idx,tier,bonus){
   const [name,nat,style]=AI_CLUBS[idx]; const avg=clubStrength(idx,tier)+(bonus||0);
   const form=Object.keys(FORMATIONS)[hashStr(name)%5]; const F=FORMATIONS[form];
-  const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition); const used=new Set();
+  const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition&&!c.icon); const used=new Set();
   const slots=F.map(s=>{ const target=avg+(Math.random()*6-3); let cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
     if(Math.random()<0.6){ const liked=cands.filter(c=>c.nat===nat); if(liked.length>=2) cands=liked; }
     if(!cands.length) cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)).sort((a,b)=>Math.abs(a.rating-target)-Math.abs(b.rating-target)).slice(0,8);
