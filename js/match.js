@@ -13,7 +13,7 @@ const TRAITS=[
  {n:'캡틴',d:'팀 전체 사기를 올려요',up:'pas',dn:'pac',cap:true},
 ];
 const POS_PROFILE={GK:{pac:-12,sho:-25,pas:-8,dri:-20,def:10,phy:4},DF:{pac:-3,sho:-14,pas:-4,dri:-8,def:8,phy:5},MF:{pac:-2,sho:-5,pas:7,dri:4,def:-3,phy:0},FW:{pac:5,sho:9,pas:-4,dri:5,def:-16,phy:0}};
-function attrs(c){ if(c._a) return c._a; const h=hashStr(c.name+'|'+c.nat); const p=POS_PROFILE[c.pos]||POS_PROFILE.MF; const t=TRAITS[h%TRAITS.length]; const a={};
+function attrs(c){ if(c._a) return c._a; if(c.a){ const t=TRAITS[hashStr(c.name)%7]; c._a=Object.assign({},c.a,{trait:t}); return c._a; } const h=hashStr(c.name+'|'+c.nat); const p=POS_PROFILE[c.pos]||POS_PROFILE.MF; const t=TRAITS[h%TRAITS.length]; const a={};
   ['pac','sho','pas','dri','def','phy'].forEach((k,i)=>{ const off=((h>>(i*3))%9)-4; a[k]=Math.max(30,Math.min(99,c.rating+p[k]+off+(t.up===k?5:0)-(t.dn===k?3:0))); });
   a.trait=t; c._a=a; return a; }
 function wage(c){ return Math.max(300,Math.round(300*Math.pow(1.13,c.rating-70)/100)*100); }
@@ -80,7 +80,7 @@ function autoSquad(){
 function buildOpponent(f,sq){
   const my=sq.slots.map(id=>CARDS[id]); const avg=my.reduce((a,c)=>a+c.rating,0)/11;
   const form=Object.keys(FORMATIONS)[hashStr(f.id+todayStr())%5]; const F=FORMATIONS[form];
-  const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition);
+  const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition&&!c.icon);
   const used=new Set(); const slots=F.map(s=>{ const target=avg+1.5+(Math.random()*6-3); let cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
     if(Math.random()<0.5){ const liked=cands.filter(c=>f.likes.includes(c.nat)); if(liked.length) cands=liked; }
     if(!cands.length) cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)).sort((a,b)=>Math.abs(a.rating-target)-Math.abs(b.rating-target)).slice(0,8);
@@ -109,10 +109,12 @@ function startMatch(away,ctx){ // away: {name,formation,style,mental,slots}; ctx
   const sq=squadOf(); const w=ctx.wages||0;
   const home={name:clubOf().name,formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots.slice()};
   live={home,away,hp:teamPower(home),ap:teamPower(away),min:0,score:[0,0],events:[],ctx,wages:w,timer:null,speed:140};
+  live.hp.form=0.93+Math.random()*0.14; live.ap.form=0.93+Math.random()*0.14; // 오늘의 컨디션 (±7%)
   const sw=STYLES[home.style].beats===away.style?1:STYLES[away.style].beats===home.style?-1:0; live.styleEdge=sw;
   live.events.push({m:0,t:'info',s:`${ctx.label||'경기'} 시작! ${home.name}(${home.formation}, ${STYLES[home.style].n}) vs ${away.name}(${away.formation}, ${STYLES[away.style].n})`});
   if(sw===1) live.events.push({m:0,t:'info',s:`전술 상성: ${STYLES[home.style].n}이(가) ${STYLES[away.style].n}에 유리해요!`});
   if(sw===-1) live.events.push({m:0,t:'info',s:`전술 상성: 상대의 ${STYLES[away.style].n}이(가) 우리 ${STYLES[home.style].n}에 유리해요…`});
+  if(live.hp.form>1.04) live.events.push({m:0,t:'info',s:`오늘 우리 선수들 컨디션이 아주 좋아요!`}); else if(live.hp.form<0.96) live.events.push({m:0,t:'info',s:`오늘 우리 선수들 컨디션이 조금 무거워요…`});
   S.stats.battles++; refreshHUD(); renderMatch(); live.timer=setInterval(tick,live.speed);
 }
 function chance(att,def,attacking,defending,min){
@@ -122,10 +124,12 @@ function chance(att,def,attacking,defending,min){
   const mid=(att.midfield-def.midfield)/40;
   const paceEdge=(att.pace-def.dfpace)/60; // 빠른 공격진 vs 느린 수비
   const tired=min>70?(att.ps.filter(p=>p.a.trait.tired).length*0.03):0;
-  let p=0.062*Math.pow(A/D,2.2)*(1+mid)*(1+paceEdge)*(1-tired);
-  if(attacking.style==='counter') p*= (min%3===0?1.5:0.75);
-  if(attacking.style==='press') p*= min<60?1.1:0.95;
-  return Math.max(0.005,Math.min(0.25,p));
+  // 축구공은 둥글다: 전력 차이는 완만하게(지수 1.3), 중원·스피드 효과는 상한, 경기마다 컨디션(form) 반영
+  const midC=Math.max(-0.3,Math.min(0.3,mid*0.5)), paceC=Math.max(-0.2,Math.min(0.2,paceEdge*0.5));
+  let p=0.048*Math.pow((A*(att.form||1))/(D*(def.form||1)),1.3)*(1+midC)*(1+paceC)*(1-tired);
+  if(attacking.style==='counter') p*= (min%3===0?1.35:0.85);
+  if(attacking.style==='press') p*= min<60?1.08:0.95;
+  return Math.max(0.012,Math.min(0.085,p));
 }
 function tick(){
   if(!live) return; live.min++;
@@ -137,7 +141,7 @@ function tick(){
       const assist=[...ap.mf,...ap.fw].filter(p=>p!==sh); const as=assist[Math.floor(Math.random()*assist.length)];
       const q=sh.a.sho*0.6+sh.a.dri*0.2+(as?as.a.pas*0.2:14);
       const stop=dp.keeper*0.75+dp.defense*0.25;
-      const goalP=0.26*Math.pow(q/stop,3);
+      const goalP=Math.max(0.07,Math.min(0.45,0.27*Math.pow(q/stop,1.6)));
       const r=Math.random();
       if(r<goalP){ live.score[idx]++; live.events.push({m:live.min,t:'goal',side:idx,s:`골! ${sh.c.name}${as?` (도움: ${as.c.name})`:''}`}); }
       else if(r<goalP+0.25){ live.events.push({m:live.min,t:'save',side:idx,s:`${sh.c.name}의 슛을 ${dp.gk.c.name} 골키퍼가 막아냈어요`}); }
