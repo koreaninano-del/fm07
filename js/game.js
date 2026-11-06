@@ -35,6 +35,7 @@ function weightedRarity(minR){
 }
 function pullPack(set,starter){
   const out=[];
+  if(set.style==='icon'){ const filler=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition&&!c.icon&&(c.rar==='G'||c.rar==='H')); for(let i=0;i<5;i++) out.push(filler[Math.floor(Math.random()*filler.length)]); out.push(set.cards[Math.floor(Math.random()*set.cards.length)]); return out; }
   for(let i=0;i<6;i++){
     let rar=weightedRarity(i===5?'R':'C'); if(starter&&i<5) rar='C';
     let pool=set.cards.filter(c=>c.rar===rar); if(!pool.length) pool=set.cards;
@@ -86,7 +87,7 @@ function renderShop(){
 function showOdds(){ openModal(`<h2>개봉 확률</h2><p class="muted">카드 1장당 등급이 나올 확률이에요. 마지막 6번째 카드는 반드시 레어 이상!</p><table class="tbl">${Object.entries(RARITY).map(([k,r])=>`<tr><td><span class="rar-dot" style="background:${r.color}"></span>${r.n}</td><td>${r.odds}%</td></tr>`).join('')}</table><button class="btn" onclick="renderShop()">돌아가기</button>`); }
 let opening=null;
 function buyPack(){
-  if(S.money<shopSel.price) return; S.money-=shopSel.price; S.stats.packs++;
+  if(!econOK()) return; if(S.money<shopSel.price) return; S.money-=shopSel.price; S.stats.packs++;
   const cards=pullPack(shopSel); opening={set:shopSel,cards,idx:0,newIds:cards.filter(c=>!S.cards[c.id]).map(c=>c.id)};
   cards.forEach(c=>addCard(S,c.id)); S.recent=[...cards.map(c=>c.id).reverse(),...(S.recent||[])].slice(0,30); logIt(`${shopSel.short} 팩 1개 구매 (${fmt(shopSel.price)})`); refreshHUD();
   openModal(`<div class="open-stage"><div class="steps"><span>01 구매</span><span class="on">02 봉투 개봉</span><span>03 꺼내기</span><span>04 확인</span></div>
@@ -123,7 +124,7 @@ function renderBinder(){
   let cards=myCards();
   if(bk.set) cards=cards.filter(c=>c.set===bk.set);
   if(bk.filter) cards=cards.filter(c=>c.name.includes(bk.filter)||c.id.includes(bk.filter.toUpperCase())||NATIONS[c.nat].n.includes(bk.filter));
-  const sorters={set:(a,b)=>a.id.localeCompare(b.id),rating:(a,b)=>b.rating-a.rating,price:(a,b)=>b.price-a.price,rar:(a,b)=>'CRHGL'.indexOf(b.rar)-'CRHGL'.indexOf(a.rar)||b.rating-a.rating};
+  const sorters={set:(a,b)=>a.id.localeCompare(b.id),rating:(a,b)=>b.rating-a.rating,price:(a,b)=>b.price-a.price,rar:(a,b)=>'CRHGLI'.indexOf(b.rar)-'CRHGLI'.indexOf(a.rar)||b.rating-a.rating};
   cards.sort(sorters[bk.sort]);
   const per=12, pages=Math.max(1,Math.ceil(cards.length/per)); bk.page=Math.min(bk.page,pages-1);
   const pg=cards.slice(bk.page*per,bk.page*per+per);
@@ -152,7 +153,7 @@ function cardDetail(id,back){
     <div class="stat-row"><span>국가</span><b>${NATIONS[c.nat].n}</b></div><div class="stat-row"><span>포지션</span><b>${c.pp?`${c.pp[0]} <span class="muted small">${POS_KO[c.pp[0]]}</span>${c.pp.length>1?` · 서브 ${c.pp.slice(1).join(', ')}`:''}`:POS_KO[c.pos]}</b></div><div class="stat-row"><span>능력치</span><b>${c.rating}</b></div>${c.dob?`<div class="stat-row"><span>생년월일</span><b>${c.dob.split('-').reverse().join('.')}</b></div><div class="stat-row"><span>키 / 몸무게</span><b>${c.h.replace(',','.')} m / ${c.w} kg</b></div>`:''}${c.kind==='player'||!c.kind?attrHTML(c):''}${c.edition?`<div class="stat-row"><span>에디션</span><b>${EDITION_INFO[c.edition].n}</b></div>`:''}${c.award?`<div class="stat-row"><span>수상</span><b>${c.award}</b></div>`:''}${c.club?`<div class="stat-row"><span>소속 클럽</span><b style="font-size:12px">${c.club}</b></div>`:''}<div class="stat-row"><span>보유</span><b>${S.cards[c.id]||0}장</b></div><div class="stat-row"><span>시세</span><b>${fmt(c.price)}</b></div>
     <div class="row"><button class="btn" onclick="${back}()">돌아가기</button>${S.cards[c.id]?`<button class="btn primary" onclick="sellCard('${c.id}','${back}')">상인에게 판매 (${fmt(sell)})</button>`:''}</div></div></div>`);
 }
-function sellCard(id,back){ const c=CARDS[id]; if(!S.cards[id]) return; const sell=Math.round(c.price*0.6/100)*100; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
+function sellCard(id,back){ if(!econOK()) return; const c=CARDS[id]; if(!S.cards[id]) return; const sell=Math.round(c.price*0.6/100)*100; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
 /* ====== 용돈 ====== */
 function openBank(){
   const can=S.lastAllowance!==todayStr();
@@ -186,7 +187,7 @@ function renderTrade(msg){
     <div class="trade-col"><h3>${f.name}의 카드</h3><div class="card-grid small">${theirs.map(c=>pick(c,'theirs',tr.theirs===c.id)).join('')}</div></div></div>`,'wide');
 }
 function doTrade(){
-  const f=tr.friend; const m=CARDS[tr.mine], t=CARDS[tr.theirs];
+  if(!econOK()) return; const f=tr.friend; const m=CARDS[tr.mine], t=CARDS[tr.theirs];
   removeCard(S,m.id); addCard(S,t.id); const arr=S.friends[f.id]; arr.splice(arr.indexOf(t.id),1); arr.push(m.id);
   S.stats.trades++; logIt(`${f.name}과(와) 교환: ${m.name} → ${t.name}`); refreshHUD(); toast(`${t.name} 카드를 받았어요!`);
   tr.mine=null; tr.theirs=null; renderTrade(`고마워! ${m.name} 카드 갖고 싶었어.`);
