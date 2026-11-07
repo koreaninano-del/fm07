@@ -238,26 +238,33 @@ function ultraCardSVG(card,w){
 /* ---- 아이콘 카드: 상아색 바탕 + 금빛 마블 사선, 얼굴 사진, 능력치 6개 ---- */
 function iconCardSVG(card,w){
   const h=Math.round(w*1.4); const k=w/200; const uid='k'+hashStr(card.id)+Math.floor(Math.random()*1e6);
-  const img=IMG[card.img||card.id]||''; const a=card.a||{}; const N=NATIONS[card.nat];
-  const stats=['pac','sho','pas','dri','def','phy']; const sx=14*k, sw=(w-28*k)/6;
+  const img=IMG[card.img||card.id]||''; const N=NATIONS[card.nat]; const en=(card.en||card.name);
+  const shield=`M${18*k},0 H${w-18*k} Q${w},0 ${w},${18*k} V${h-30*k} Q${w},${h-22*k} ${w-10*k},${h-18*k} L${w/2},${h} L${10*k},${h-18*k} Q0,${h-22*k} 0,${h-30*k} V${18*k} Q0,0 ${18*k},0 Z`;
+  const px=w*0.22, py=h*0.035, pw=w*0.74, ph=h*0.6;
+  const photo=img?`<g mask="url(#${uid}f)"><image href="${img}" x="${px}" y="${py}" width="${pw}" height="${ph}" preserveAspectRatio="xMidYMin slice" mask="url(#${uid}e)" filter="url(#${uid}s)"/></g>`
+    :`<g mask="url(#${uid}f)" opacity=".9"><circle cx="${w*0.6}" cy="${h*0.24}" r="${w*0.17}" fill="#c9b27a"/><path d="M${w*0.26},${h*0.65} Q${w*0.27},${h*0.43} ${w*0.6},${h*0.41} Q${w*0.93},${h*0.43} ${w*0.94},${h*0.65} Z" fill="#c9b27a"/></g>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="card-svg rar-I icon">
-  <defs><clipPath id="${uid}c"><path d="M${16*k},0 H${w-16*k} Q${w},0 ${w},${16*k} V${h-24*k} L${w/2},${h} L0,${h-24*k} V${16*k} Q0,0 ${16*k},0 Z"/></clipPath>
-    <linearGradient id="${uid}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf7ea"/><stop offset=".5" stop-color="#f3ecd6"/><stop offset="1" stop-color="#e9dfbf"/></linearGradient>
-    <linearGradient id="${uid}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e27a"/><stop offset=".35" stop-color="#d4af37"/><stop offset=".6" stop-color="#fff2b0"/><stop offset="1" stop-color="#b8860b"/></linearGradient>
-    <clipPath id="${uid}p"><rect x="${w*0.36}" y="${h*0.06}" width="${w*0.6}" height="${h*0.47}" rx="${6*k}"/></clipPath></defs>
+  <defs><clipPath id="${uid}c"><path d="${shield}"/></clipPath>
+    <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset=".62" stop-color="#f4ead0"/><stop offset="1" stop-color="#e6d6a8"/></linearGradient>
+    <linearGradient id="${uid}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8e48a"/><stop offset=".4" stop-color="#c9a227"/><stop offset=".65" stop-color="#fff3bf"/><stop offset="1" stop-color="#a87b12"/></linearGradient>
+    <linearGradient id="${uid}v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".78" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+    <linearGradient id="${uid}h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".18" stop-color="#fff"/><stop offset=".9" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+    <filter id="${uid}s" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.42 0.72 0.17 0 0.02  0.37 0.66 0.15 0 0.01  0.29 0.52 0.12 0 -0.01  0 0 0 1 0"/></filter><mask id="${uid}f"><rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="url(#${uid}v)"/></mask><mask id="${uid}e"><rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="url(#${uid}h)"/></mask></defs>
   <g clip-path="url(#${uid}c)"><rect width="${w}" height="${h}" fill="url(#${uid}g)"/>
-    <polygon points="${w*0.55},0 ${w},0 ${w},${h*0.42}" fill="url(#${uid}m)" opacity=".85"/><polygon points="${w*0.72},0 ${w},0 ${w},${h*0.2}" fill="#fff" opacity=".35"/>
-    <polygon points="0,${h*0.42} ${w*0.35},${h*0.62} 0,${h*0.7}" fill="url(#${uid}m)" opacity=".5"/>
-    <image href="${img}" x="${w*0.36}" y="${h*0.06}" width="${w*0.6}" height="${h*0.47}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${uid}p)"/>
-    <text x="${16*k}" y="${38*k}" font-size="${30*k}" font-family="Inter, sans-serif" font-weight="800" fill="#2b2415">${card.rating}</text>
-    <text x="${16*k}" y="${54*k}" font-size="${12*k}" font-family="Inter, sans-serif" font-weight="700" fill="#5a4a1a">${(card.pp||[card.pos])[0]}</text>
-    <g transform="translate(${16*k},${62*k})">${flagSVG(card.nat,22*k,15*k)}</g>
-    <rect x="0" y="${h*0.56}" width="${w}" height="${h*0.11}" fill="#2b2415" opacity=".06"/>
-    <text x="${w/2}" y="${h*0.64}" font-size="${(card.en||card.name).length>12?12*k:15*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#2b2415" letter-spacing="${1*k}">${esc(card.en||card.name)}</text>
-    <text x="${w/2}" y="${h*0.7}" font-size="${9*k}" font-family="sans-serif" text-anchor="middle" fill="#6b5a2a">${esc(card.name)} · ${N?N.n:''}</text>
-    ${stats.map((st,i)=>`<text x="${sx+sw*i+sw/2}" y="${h*0.79}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="#8a7430">${st.toUpperCase()}</text><text x="${sx+sw*i+sw/2}" y="${h*0.87}" font-size="${13*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#2b2415">${a[st]||''}</text>`).join('')}
-    <text x="${w/2}" y="${h*0.95}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="#b8860b" letter-spacing="${2*k}">ICON · ${String(card.no).padStart(2,'0')}/${card.total}</text>
-    <path d="M${16*k},${1.5*k} H${w-16*k} Q${w-1.5*k},${1.5*k} ${w-1.5*k},${16*k} V${h-24*k} L${w/2},${h-1.5*k} L${1.5*k},${h-24*k} V${16*k} Q${1.5*k},${1.5*k} ${16*k},${1.5*k} Z" fill="none" stroke="url(#${uid}m)" stroke-width="${3*k}"/></g></svg>`;
+    <polygon points="${w*0.45},0 ${w},0 ${w},${h*0.5}" fill="url(#${uid}m)" opacity=".55"/><polygon points="${w*0.78},0 ${w},0 ${w},${h*0.22}" fill="#fff" opacity=".45"/>
+    <polygon points="0,${h*0.3} ${w*0.3},${h*0.55} 0,${h*0.66}" fill="url(#${uid}m)" opacity=".35"/>
+    ${photo}
+    <text x="${w*0.14}" y="${h*0.135}" font-size="${34*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#2b2415">${card.rating}</text>
+    <text x="${w*0.14}" y="${h*0.185}" font-size="${14*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle" fill="#5a4a1a">${(card.pp||[card.pos])[0]}</text>
+    <line x1="${w*0.07}" x2="${w*0.21}" y1="${h*0.205}" y2="${h*0.205}" stroke="#b8960f" stroke-width="${1.2*k}"/>
+    <g transform="translate(${w*0.14-12*k},${h*0.225})">${flagSVG(card.nat,24*k,16*k)}</g>
+    <rect x="${w*0.06}" y="${h*0.64}" width="${w*0.88}" height="${1.5*k}" fill="url(#${uid}m)"/>
+    <text x="${w/2}" y="${h*0.735}" font-size="${en.length>13?15*k:en.length>9?19*k:23*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#2b2415" letter-spacing="${0.6*k}">${esc(en)}</text>
+    <text x="${w/2}" y="${h*0.795}" font-size="${13*k}" font-family="sans-serif" font-weight="700" text-anchor="middle" fill="#5a4a1a">${esc(card.name)}</text>
+    <text x="${w/2}" y="${h*0.845}" font-size="${10*k}" font-family="sans-serif" text-anchor="middle" fill="#7a6630">${N?N.n:''} · ${POS_KO[(card.pp||[card.pos])[0]]||''}</text>
+    <rect x="${w/2-26*k}" y="${h*0.875}" width="${52*k}" height="${16*k}" rx="${8*k}" fill="#2b2415"/>
+    <text x="${w/2}" y="${h*0.875+11.5*k}" font-size="${9*k}" font-family="Inter, sans-serif" font-weight="800" text-anchor="middle" fill="#f3d36b" letter-spacing="${2*k}">ICON</text>
+    <path d="${shield}" fill="none" stroke="url(#${uid}m)" stroke-width="${5*k}"/></g></svg>`;
 }
 function imageCardSVG(card,w){
   if(card.icon) return iconCardSVG(card,w);
@@ -303,4 +310,4 @@ function imageCardSVG(card,w){
    <text x="${10*k}" y="${h-bw-foot+13.5*k}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="600" fill="${ed.ink}" font-variant-numeric="tabular-nums">${String(card.no).padStart(3,'0')} / ${card.total}</text>
    <text x="${w-10*k}" y="${h-bw-foot+13.5*k}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="end" fill="${ed.ink}">${ed.label}</text></svg>`;
 }
-cardSVG=function(card,w){ w=w||200; if(typeof IMG!=='undefined'&&IMG[card.img||card.id]) return imageCardSVG(card,w); return card.style==='sticker'? stickerSVG(card,w) : _classicSVG(card,w); };
+cardSVG=function(card,w){ w=w||200; if(card.icon) return iconCardSVG(card,w); if(typeof IMG!=='undefined'&&IMG[card.img||card.id]) return imageCardSVG(card,w); return card.style==='sticker'? stickerSVG(card,w) : _classicSVG(card,w); };
