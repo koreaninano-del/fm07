@@ -88,7 +88,7 @@ const RARITY = {
 };
 // [이름, 국가, 포지션, 능력치, 등급]
 const SETS = [...WC_SETS, ...EDITION_SETS, ...OLD_WC_SETS, ...OLD_EDITION_SETS, ...(typeof ICON_SETS!=='undefined'?ICON_SETS:[])];
-SETS.forEach(s=>{ s.short=s.short.replace('WC26 스티커 ','2026 ').replace('WC26 ','2026 ').replace('WC14 ','2014 ').replace('WC18 ','2018 '); });
+SETS.forEach(s=>{ s.name=s.name.replace('스티커팩','카드팩'); s.short=s.short.replace('WC26 스티커 ','2026 ').replace('WC26 ','2026 ').replace('WC14 ','2014 ').replace('WC18 ','2018 '); });
 const CARDS = {};
 SETS.forEach(set=>{
   set.cards = set.players.map((p,i)=>{
