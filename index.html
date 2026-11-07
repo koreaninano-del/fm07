@@ -3,28 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>월드컵 스티커 카드숍</title>
+<title>KICK OFF 27</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --ground:#000000;--surface:#111111;--raised:#2a2a2a;--border:#1a1a1a;--rule:#161616;--control:#444444;
-  --text:#ffffff;--muted:#b4b4b4;--faint:#949494;
+  --text:#ffffff;--muted:#c8c8c8;--faint:#a0a0a0;
   --accent:#c6f24e;--positive:#c6f24e;--negative:#e5484d;--warning:#e5a93b;
   --pill-positive-bg:#222a10;--pill-positive-ink:#c6f24e;--pill-negative-bg:#2c1a20;--pill-negative-ink:#e5566f;--pill-warning-bg:#2b2414;--pill-warning-ink:#e5a93b;--pill-neutral-bg:#222222;--pill-neutral-ink:#ffffff;
   --radius-card:20px;--radius-control:999px;--gap:14px;--pad:22px;--control-height:36px;
-  --fs-title:20px;--fs-section:16px;--fs-kpi:24px;--fs-body:14px;--fs-small:12px;
+  --fs-title:21px;--fs-section:18px;--fs-kpi:26px;--fs-body:15px;--fs-small:13px;
   --font:"Inter","Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --pitch:#1f5b33;--pitch2:#235f37;
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--ground);color:var(--text);font-family:var(--font);font-size:var(--fs-body);line-height:20px;-webkit-font-smoothing:antialiased}
+html,body{margin:0;min-height:100%;background:var(--ground);color:var(--text);font-family:var(--font);font-size:var(--fs-body);line-height:22px;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit}
 .num{font-variant-numeric:tabular-nums}
 #app{min-height:100vh;display:flex;flex-direction:column}
 /* ---- top bar ---- */
 .top{height:48px;display:flex;align-items:center;justify-content:space-between;gap:var(--gap);width:min(1208px,100% - 32px);margin:0 auto}
-.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:.6px}
 .brand svg{width:24px;height:24px;display:block}
 .navlinks{display:flex;gap:22px}
 .navlinks a{color:var(--muted);font-weight:500;cursor:pointer;text-decoration:none}
@@ -43,7 +43,7 @@ button,input,select{font:inherit}
 .col{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
 .sec{background:var(--surface);border-radius:var(--radius-card);padding:var(--pad);min-width:0}
 .sec.span4{grid-column:span 4}.sec.span2{grid-column:span 2}.sec.span3{grid-column:span 3}.sec.span6{grid-column:span 6}
-.sec h2{margin:0;font-size:var(--fs-section);font-weight:600;display:flex;align-items:center;justify-content:space-between;line-height:24px}
+.sec h2{margin:0 0 12px;font-size:var(--fs-section);font-weight:700;display:flex;align-items:center;justify-content:space-between;line-height:24px}
 .sec h2 .more{font-size:var(--fs-body);color:var(--muted);font-weight:500;cursor:pointer}
 .sec h2 .more:hover{color:var(--text)}
 .sec .desc{color:var(--muted);margin:2px 0 14px}
@@ -66,9 +66,9 @@ h1.title{margin:0;font-size:var(--fs-title);font-weight:600;line-height:28px}
 .club-foot{display:flex;justify-content:space-between;align-items:center;gap:var(--gap);color:var(--muted)}
 /* league */
 .ltable{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
-.ltable th{color:var(--muted);font-weight:400;font-size:var(--fs-small);text-align:right;padding:0 6px 8px}
+.ltable th{white-space:nowrap;overflow:hidden;color:var(--muted);font-weight:400;font-size:var(--fs-small);text-align:right;padding:0 6px 8px}
 .ltable th:nth-child(2){text-align:left}
-.ltable td{padding:0 6px;height:36px;text-align:right;border-top:1px solid var(--rule);font-variant-numeric:tabular-nums}
+.ltable td{padding:0 6px;height:44px;text-align:right;border-top:1px solid var(--rule);font-variant-numeric:tabular-nums}
 .ltable td:nth-child(2){text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
 .ltable td:first-child{color:var(--muted)}
 .ltable tr.me td{background:var(--raised);font-weight:600}
@@ -107,6 +107,32 @@ h1.title{margin:0;font-size:var(--fs-title);font-weight:600;line-height:28px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chips.col{flex-direction:column}
 .chip{height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--control);background:transparent;color:var(--text);cursor:pointer;font-weight:500;font-size:var(--fs-small);text-align:left;white-space:nowrap}
 .chip:hover{background:var(--raised)}.chip.on{background:#fff;color:#000;border-color:#fff}
+.tblwrap{width:100%;overflow-x:auto}
+.ltable.fixed{table-layout:fixed}.ltable.fixed td:nth-child(2){max-width:none}
+.ltable col.c-rank{width:30px}.ltable col.c-n{width:38px}.ltable col.c-gd{width:46px}.ltable col.c-pts{width:46px}.ltable col.c-money{width:76px}.ltable col.c-act{width:64px}
+.ltable.admin td:first-child{color:var(--text);text-align:left}.ltable.admin th:first-child{text-align:left}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ell.sub{font-size:var(--fs-small);line-height:16px;color:var(--muted);font-weight:400}
+.ltable td .ell.sub{margin-top:-2px}
+.opps{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.opp{display:flex;align-items:center;gap:12px;background:var(--raised);border-radius:12px;padding:10px 12px 10px 16px}.opp-info{flex:1;min-width:0}.opp .btn{flex:none;min-width:76px}
+.next>div:first-child{min-width:0}
+/* shop v2 */
+.shop2{display:grid;grid-template-columns:170px 1fr 280px;gap:var(--gap);min-height:560px}
+.shop-cats{display:flex;flex-direction:column;gap:6px}.shop-cats input{margin-top:8px;width:100%}
+.cat{display:flex;justify-content:space-between;align-items:center;height:44px;padding:0 14px;border-radius:12px;border:0;background:var(--raised);color:var(--text);font-weight:600;cursor:pointer;text-align:left}
+.cat em{font-style:normal}.cat em.short{display:none}.cat span{color:var(--muted);font-weight:400;font-size:var(--fs-small)}.cat:hover{background:#333}.cat.on{background:#fff;color:#000}.cat.on span{color:#444}
+.shop-list{min-width:0;max-height:72vh;overflow:auto;padding-right:4px}.shop-list h3{margin:4px 0 8px;font-size:var(--fs-body);color:var(--muted);font-weight:600}.shop-list h3:not(:first-child){margin-top:18px}
+.pack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.pack-grid .pack-item{padding:10px 6px}.pack-grid .pi-name{font-size:var(--fs-small)}
+.shop-buy{background:var(--raised);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px;align-self:start}
+.shop-buy .pack-big{display:flex;justify-content:center;margin-bottom:6px}.shop-buy h2{font-size:var(--fs-section);line-height:24px;margin:0 0 6px;text-align:center}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #333}.kv span{color:var(--muted)}.kv b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}.kv b.big{font-size:var(--fs-section)}.kv b.neg{color:var(--negative)}
+.shop-buy .btn.big{margin-top:8px;height:44px}
+/* binder bulk */
+.selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;background:var(--raised);border-radius:12px;padding:10px 12px}.selbar .muted{margin-left:auto;font-variant-numeric:tabular-nums}
+.page.sel-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));margin-top:14px}
+.slot.picked{outline:2px solid var(--accent)}.slot .pick{position:absolute;left:8px;top:8px;background:var(--accent);color:#000;font-size:11px;line-height:16px;padding:1px 6px;border-radius:999px;font-weight:700}
+.slot .sv{font-size:11px;line-height:14px;color:var(--muted)}
 /* ---- modal ---- */
 .modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
 .modal{background:var(--surface);color:var(--text);border-radius:var(--radius-card);padding:var(--pad);width:min(640px,96%);max-height:94vh;overflow:auto}
@@ -234,63 +260,63 @@ input:focus,select:focus{outline:none;border-color:#fff}
 .p-face{width:36px;height:36px;border-radius:50%;background:var(--raised)}
 #toast{position:fixed;left:50%;top:64px;transform:translateX(-50%) translateY(-10px);background:#fff;color:#000;padding:8px 16px;border-radius:999px;font-weight:500;opacity:0;transition:.2s;z-index:60;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%)}
-@media (max-width:980px){.main{grid-template-columns:1fr}.top{height:auto;padding:8px 0}.brand span{white-space:nowrap}.sync{display:none}.icon-btn{padding:0 10px}.mslot{width:66px}.mslot img{width:38px;height:50px}.mslot span{font-size:11px;line-height:14px}.pslot{width:60px}.pslot .pimg{width:40px}.pslot .pname{font-size:11px}.mini-pitch{height:400px}.pitch{height:460px}.sec{padding:16px}.navlinks,.stats{display:none}.shop,.trade,.squad,.match-body{grid-template-columns:1fr}.lineup{display:none}.pack-list{max-height:220px}.mini-pitch{height:380px}.binder-book{grid-template-columns:1fr}.detail{flex-direction:column;align-items:center;gap:12px}.detail-info{width:100%}.detail-card{max-width:100%}.detail-card svg{max-width:220px;height:auto}.modal{padding:16px}.attrs{grid-template-columns:1fr}.reveal-card svg{max-width:min(230px,70vw);height:auto}}
+@media (max-width:980px){.main{grid-template-columns:1fr}.top{height:auto;padding:8px 0}.brand span{white-space:nowrap}.sync{display:none}.icon-btn{padding:0 10px}.mslot{width:66px}.mslot img{width:38px;height:50px}.mslot span{font-size:11px;line-height:14px}.pslot{width:60px}.pslot .pimg{width:40px}.pslot .pname{font-size:11px}.mini-pitch{height:400px}.pitch{height:460px}.sec{padding:16px}.navlinks,.stats{display:none}.shop,.shop2,.trade,.squad,.match-body{grid-template-columns:1fr}.ltable{font-size:13px}.ltable col.c-rank{width:22px}.ltable col.c-n{width:25px}.ltable col.c-gd{width:34px}.ltable col.c-pts{width:36px}.ltable col.c-money{width:62px}.ltable col.c-act{width:0}.ltable .act{display:none}.ltable td,.ltable th{padding-left:3px;padding-right:3px}.shop-cats{flex-direction:row;flex-wrap:wrap;order:0}.cat{height:38px;flex:1 1 18%;padding:0 8px;justify-content:center}.cat span{display:none}.cat em.full{display:none}.cat em.short{display:inline}.shop-buy{order:1}.shop-list{order:2;max-height:none}.pack-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}.ltable th{font-size:11px}.lineup{display:none}.pack-list{max-height:220px}.mini-pitch{height:380px}.binder-book{grid-template-columns:1fr}.detail{flex-direction:column;align-items:center;gap:12px}.detail-info{width:100%}.detail-card{max-width:100%}.detail-card svg{max-width:220px;height:auto}.modal{padding:16px}.attrs{grid-template-columns:1fr}.reveal-card svg{max-width:min(230px,70vw);height:auto}}
 </style>
 </head>
 <body>
 <div id="app">
   <div class="top">
     <div class="brand" id="brand"></div>
-    <nav class="navlinks"><a onclick="renderHome();window.scrollTo(0,0)">내 클럽</a><a onclick="openShop()">팩 상점</a><a onclick="openBinder()">카드북</a><a onclick="openTradeLobby()">트레이드</a><a onclick="openBank()">용돈</a></nav>
+    <nav class="navlinks"><a onclick="renderHome();window.scrollTo(0,0)">내 클럽</a><a onclick="openShop()">카드팩</a><a onclick="openBinder()">카드북</a><a onclick="openTradeLobby()">트레이드</a><a onclick="openBank()">용돈</a></nav>
     <div class="stats"><div class="stat">잔액 <b class="num" id="hud-money">0원</b></div><div class="stat">카드 <b class="num" id="hud-cards">0</b></div></div>
     <div class="icons"><div id="sync" class="sync"></div><button class="icon-btn" onclick="openAccount()"><b id="hud-name">나</b></button><button class="icon-btn" onclick="openLog()">기록</button><button class="icon-btn" onclick="openMenu()">메뉴</button></div>
   </div>
   <div class="main">
     <div class="col">
       <div class="sec club" id="club-panel"></div>
-      <div class="sec"><h2>가족 리그 <span class="more" onclick="openClubHistory()">시즌 기록</span></h2><div class="desc">같은 사이트에 가입한 가족 계정이 한 리그에서 겨뤄요. 매달 새 시즌.</div><div id="league-panel"></div></div>
-      <div class="sec"><h2>연습 리그 (AI)</h2><div class="desc">8팀 더블 라운드 로빈 14경기. 상위 2팀 승격, 하위 2팀 강등.</div><div id="ai-league-panel"></div></div>
-      <div class="sec"><h2>FA컵 · 친선</h2><div class="desc">16강부터 결승까지 4연승하면 우승.</div><div id="cup-panel"></div></div>
+      <div class="sec"><h2>패밀리 리그</h2><div id="league-panel"></div></div>
+      <div class="sec"><h2>연습 리그 <span class="more" onclick="openClubHistory()">시즌 기록</span></h2><div id="ai-league-panel"></div></div>
+      <div class="sec"><h2>FA컵 · 친선</h2><div id="cup-panel"></div></div>
     </div>
     <div class="col">
-      <div class="sec"><h2>추천 팩 <span class="more" onclick="openShop()">전체 팩 보기</span></h2><div class="desc">카드를 모아 스쿼드를 키우세요.</div><div class="packs" id="home-packs"></div></div>
-      <div class="sec"><h2>최근 뽑은 카드 <span class="more" onclick="openBinder()">카드북</span></h2><div class="desc">방금 뽑은 카드가 여기에 쌓여요.</div><div class="recent" id="home-recent"></div></div>
-      <div class="sec"><h2>내 컬렉션</h2><div class="desc">카드북 현황</div><div class="summary" id="home-summary"></div></div>
+      <div class="sec"><h2>추천 팩 <span class="more" onclick="openShop()">카드팩 상점</span></h2><div class="packs" id="home-packs"></div></div>
+      <div class="sec"><h2>최근 뽑은 카드 <span class="more" onclick="openBinder()">카드북</span></h2><div class="recent" id="home-recent"></div></div>
+      <div class="sec"><h2>내 컬렉션</h2><div class="summary" id="home-summary"></div></div>
       <div class="tiles">
-        <div class="tile" onclick="openShop()"><div><div class="tt">팩 상점</div><div class="ts" id="tile-shop"></div></div></div>
+        <div class="tile" onclick="openShop()"><div><div class="tt">카드팩 상점</div><div class="ts" id="tile-shop"></div></div></div>
         <div class="tile" onclick="openBinder()"><div><div class="tt">카드북</div><div class="ts" id="tile-book"></div></div></div>
-        <div class="tile" onclick="openTradeLobby()"><div><div class="tt">트레이드</div><div class="ts">민준 · 서연 · 지호</div></div></div>
+        <div class="tile" onclick="openTradeLobby()"><div><div class="tt">트레이드</div><div class="ts">가족 · 친구와 교환</div></div></div>
         <div class="tile" onclick="openBank()"><div><div class="tt">용돈 상자</div><div class="ts" id="tile-bank"></div></div></div>
         <div class="tile" onclick="openRandomBox()"><div><div class="tt">랜덤박스</div><div class="ts" id="tile-box"></div></div></div>
-        <div class="tile" id="tile-admin" style="display:none" onclick="openAdmin()"><div><div class="tt">관리자</div><div class="ts">전원에게 돈 넣어주기</div></div></div>
+        <div class="tile" id="tile-admin" style="display:none" onclick="openAdmin()"><div><div class="tt">관리자</div><div class="ts">지급 · 시세 · 강퇴</div></div></div>
       </div>
     </div>
   </div>
-  <div class="foot">진행 상황은 자동 저장돼요 · 오른쪽 위 이름 버튼에서 계정을 관리할 수 있어요</div>
+  
   <div id="toast"></div>
   <div id="modal" class="modal-wrap"></div>
 </div>
 <script>
 const MARK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16l-1.5 2L20 7l-1.5 2L20 11l-1.5 2L20 15l-1.5 2L20 19l-1.5 2H4l1.5-2L4 17l1.5-2L4 13l1.5-2L4 9l1.5-2L4 5z" fill="#c6f24e"/><circle cx="12" cy="12" r="4" fill="#000"/></svg>';
 </script>
-<script src="firebase-config.js?v=202611071302"></script>
-<script src="js/img_data.js?v=202611071302"></script>
-<script src="js/img_data2.js?v=202611071302"></script>
-<script src="js/wc_data.js?v=202611071302"></script>
-<script src="js/wc1418_data.js?v=202611071302"></script>
-<script src="js/editions.js?v=202611071302"></script>
-<script src="js/icon_data.js?v=202611071302"></script>
-<script src="js/pos_data.js?v=202611071302"></script>
-<script src="js/data.js?v=202611071302"></script>
-<script src="js/cut_data.js?v=202611071302"></script>
-<script src="js/card.js?v=202611071302"></script>
-<script src="js/match.js?v=202611071302"></script>
-<script src="js/league.js?v=202611071302"></script>
-<script src="js/family.js?v=202611071302"></script>
-<script src="js/extras.js?v=202611071302"></script>
-<script src="js/home.js?v=202611071302"></script>
-<script src="js/auth.js?v=202611071302"></script>
-<script src="js/game.js?v=202611071302"></script>
+<script src="firebase-config.js?v=202611071341"></script>
+<script src="js/img_data.js?v=202611071341"></script>
+<script src="js/img_data2.js?v=202611071341"></script>
+<script src="js/wc_data.js?v=202611071341"></script>
+<script src="js/wc1418_data.js?v=202611071341"></script>
+<script src="js/editions.js?v=202611071341"></script>
+<script src="js/icon_data.js?v=202611071341"></script>
+<script src="js/pos_data.js?v=202611071341"></script>
+<script src="js/data.js?v=202611071341"></script>
+<script src="js/cut_data.js?v=202611071341"></script>
+<script src="js/card.js?v=202611071341"></script>
+<script src="js/match.js?v=202611071341"></script>
+<script src="js/league.js?v=202611071341"></script>
+<script src="js/family.js?v=202611071341"></script>
+<script src="js/extras.js?v=202611071341"></script>
+<script src="js/home.js?v=202611071341"></script>
+<script src="js/auth.js?v=202611071341"></script>
+<script src="js/game.js?v=202611071341"></script>
 
 </body>
 </html>
