@@ -105,7 +105,7 @@ function authError(msg){ const e=document.getElementById('auth-err'); if(e){ e.t
 function openAuth(tab){
   tab=tab||'login'; const last=localStorage.getItem(LAST_KEY)||'';
   const legacy=(DB.profiles||[]).filter(p=>p&&p.stats&&(p.stats.packs>0||cardCount(p)>6));
-  openModal(`<div class="auth"><div class="auth-logo">${MARK}</div><h1 style="text-align:center;font-size:20px;line-height:28px">월드컵 스티커 카드숍</h1><p class="muted" style="text-align:center;margin-top:0">${Account.mode==='cloud'?'아이디로 로그인하면 어느 기기에서든 이어서 할 수 있어요':'이 기기에 저장되는 로컬 모드예요'}</p>
+  openModal(`<div class="auth"><div class="auth-logo">${MARK}</div><h1 style="text-align:center;font-size:24px;line-height:32px;letter-spacing:.5px">KICK OFF 27</h1><p class="muted" style="text-align:center;margin-top:0">${Account.mode==='cloud'?'아이디로 로그인하면 어느 기기에서든 이어서 할 수 있어요':'이 기기에 저장되는 로컬 모드예요'}</p>
     <div class="tabs"><button class="tab ${tab==='login'?'on':''}" onclick="openAuth('login')">로그인</button><button class="tab ${tab==='join'?'on':''}" onclick="openAuth('join')">새 아이디 만들기</button></div>
     ${tab==='login'?`<label>아이디<input id="a-id" value="${last}" placeholder="영문 소문자·숫자" autocomplete="username"></label><label>비밀번호<input id="a-pw" type="password" placeholder="6자 이상" autocomplete="current-password"></label>
       <div id="auth-err" class="warn" style="display:none"></div><button class="btn primary big" onclick="doLogin()">로그인</button>`
