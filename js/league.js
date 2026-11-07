@@ -28,7 +28,7 @@ function aiResult(sa,sb){ const d=(sa-sb)/6; const ga=Math.max(0,Math.round(1.4+
 function applyResult(L,h,a,hs,as){ const T=L.table; const th=T[h],ta=T[a]; th.p++;ta.p++;th.gf+=hs;th.ga+=as;ta.gf+=as;ta.ga+=hs; if(hs>as){th.w++;ta.l++;th.pts+=3;} else if(hs<as){ta.w++;th.l++;ta.pts+=3;} else {th.d++;ta.d++;th.pts++;ta.pts++;} }
 function standings(L){ return L.teams.slice().sort((x,y)=>{ const a=L.table[x],b=L.table[y]; return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf; }); }
 function buildClubTeam(idx,tier,bonus){
-  const [name,nat,style]=AI_CLUBS[idx]; const avg=clubStrength(idx,tier)+(bonus||0);
+  const [name,nat,style]=AI_CLUBS[idx]; const avg=clubStrength(idx,tier)+(bonus||0)+AI_WAGE_BONUS;
   const form=Object.keys(FORMATIONS)[hashStr(name)%5]; const F=FORMATIONS[form];
   const all=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition&&!c.icon); const used=new Set();
   const slots=F.map(s=>{ const target=avg+(Math.random()*6-3); let cands=all.filter(c=>posPenalty(c,s[0])===0&&!used.has(c.name)&&Math.abs(c.rating-target)<=3);
@@ -101,7 +101,7 @@ function renderClubPanels(){
   // league
   if(!c.league) newSeason(); const L=c.league; const st=standings(L); const next=L.md<L.fixtures.length?L.fixtures[L.md].find(m=>m.h==='ME'||m.a==='ME'):null; const oppId=next?(next.h==='ME'?next.a:next.h):null;
   document.getElementById('ai-league-panel').innerHTML=`<table class="ltable"><tr><th>#</th><th>팀</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${st.map((t,i)=>{ const r=L.table[t]; return `<tr class="${t==='ME'?'me':''} ${i<2&&c.tier>1?'up':''} ${i>=6&&c.tier<3?'down':''}"><td>${i+1}</td><td>${leagueName(t)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`; }).join('')}</table>
-    <div class="next"><div><div class="muted small">다음 경기 · ${L.md+1}/${L.fixtures.length}라운드</div><b>${oppId!==null?`vs ${leagueName(oppId)} (${TIER_AVG[L.tier]+((hashStr(AI_CLUBS[oppId][0])%7)-3)})`:'시즌 종료'}</b></div><button class="btn primary" onclick="playLeague()" ${err?'disabled':''}>경기하기</button></div>
+    <div class="next"><div><div class="muted small">다음 경기 · ${L.md+1}/${L.fixtures.length}라운드</div><b>${oppId!==null?`vs ${leagueName(oppId)} (${Math.round(clubStrength(oppId,L.tier)+AI_WAGE_BONUS)})`:'시즌 종료'}</b></div><button class="btn primary" onclick="playLeague()" ${err?'disabled':''}>경기하기</button></div>
     <div class="muted small">오늘 남은 연습 리그 경기 ${matchesLeft()}/${DAILY_MATCHES} · 급여 ${fmt(w)} 지출, 승리 시 ${fmt(Math.round(w*1.3)+3000+(L.tier===1?3000:L.tier===2?1500:0))}</div>`;
   // cup
   const C=c.cup; const active=C&&!C.done&&!C.out;
