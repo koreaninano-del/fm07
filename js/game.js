@@ -33,9 +33,11 @@ function weightedRarity(minR){
   const tot=pool.reduce((a,r)=>a+RARITY[r].odds,0); let x=Math.random()*tot;
   for(const r of pool){ x-=RARITY[r].odds; if(x<=0) return r; } return pool[0];
 }
+const rpick=a=>a[Math.floor(Math.random()*a.length)];
 function pullPack(set,starter){
   const out=[];
-  if(set.style==='icon'){ const filler=Object.values(CARDS).filter(c=>isPlayerCard(c)&&!c.edition&&!c.icon&&(c.rar==='G'||c.rar==='H')); for(let i=0;i<5;i++) out.push(filler[Math.floor(Math.random()*filler.length)]); out.push(set.cards[Math.floor(Math.random()*set.cards.length)]); return out; }
+  if(set.draw) return set.draw();
+  if(set.style==='icon'){ const n=set.iconN||1; for(let i=0;i<6-n;i++) out.push(rpick(POOL.fill)); for(let i=0;i<n;i++) out.push(rpick(set.cards)); return out; }
   for(let i=0;i<6;i++){
     let rar=weightedRarity(i===5?'R':'C'); if(starter&&i<5) rar='C';
     let pool=set.cards.filter(c=>c.rar===rar); if(!pool.length) pool=set.cards;
@@ -44,6 +46,40 @@ function pullPack(set,starter){
   }
   return out;
 }
+/* ====== 팩 카탈로그 (카테고리 · 가상 팩) ====== */
+const POOL={}; let PACKS=[];
+function buildCatalog(){
+  const all=Object.values(CARDS);
+  const base=all.filter(c=>isPlayerCard(c)&&!c.edition&&!c.icon&&!c.ultra);
+  POOL.icon=all.filter(c=>c.icon); POOL.fill=base.filter(c=>c.rar==='G'||c.rar==='H');
+  POOL.ultra=all.filter(c=>c.ultra); POOL.legend=base.filter(c=>c.rar==='L'); POOL.gold=base.filter(c=>c.rar==='G');
+  POOL.hg=base.filter(c=>c.rar==='H'||c.rar==='G'); POOL.kor=base.filter(c=>c.nat==='KOR'); POOL.star=base.filter(c=>c.rating>=85);
+  const byRar=(pool,minR)=>{ const r=weightedRarity(minR); let p=pool.filter(c=>c.rar===r); if(!p.length) p=pool.filter(c=>'CRHGL'.indexOf(c.rar)>='CRHGL'.indexOf(minR||'C')); return rpick(p.length?p:pool); };
+  const ICON=SETS.find(s=>s.id==='ICON');
+  const ip=(id,name,short,pool,n,theme)=>({id,name,short,style:'icon',iconN:n||1,cards:pool,theme:theme||ICON.theme,virtual:true,cat:'icon',sub:'아이콘 팩'});
+  const vp=(id,name,short,pool,draw,theme,sub)=>({id,name,short,cards:pool,draw,theme,virtual:true,cat:'special',sub:sub||'스페셜 팩'});
+  const V=[
+    ip('VICFW','아이콘 공격수 팩 (공격수 아이콘 1장)','아이콘 공격수',POOL.icon.filter(c=>c.pos==='FW'),1,['#c9a227','#3a1d0b']),
+    ip('VICMF','아이콘 미드필더 팩 (미드필더 아이콘 1장)','아이콘 미드필더',POOL.icon.filter(c=>c.pos==='MF'),1,['#c9a227','#0b2a3a']),
+    ip('VICDF','아이콘 수비·골키퍼 팩 (수비수/GK 아이콘 1장)','아이콘 수비·GK',POOL.icon.filter(c=>c.pos==='DF'||c.pos==='GK'),1,['#c9a227','#13321c']),
+    ip('VICPR','프라임 아이콘 팩 (능력치 92+ 아이콘 1장)','프라임 아이콘',POOL.icon.filter(c=>c.rating>=92),1,['#f3d36b','#1a1a1a']),
+    ip('VIC2','아이콘 더블 팩 (아이콘 2장)','아이콘 더블',POOL.icon,2,['#d4af37','#5a0e0e']),
+    vp('VULT','울트라 레어 팩 (울트라 카드 1장 보장)','울트라 레어',POOL.ultra,()=>[...Array(5)].map(()=>rpick(POOL.hg)).concat([rpick(POOL.ultra)]),['#c6f24e','#10220a']),
+    vp('VLEG','레전드 팩 (레전드 카드 1장 보장)','레전드',POOL.legend,()=>[...Array(5)].map(()=>rpick(POOL.hg)).concat([rpick(POOL.legend)]),['#a3e635','#1f2a0b']),
+    vp('VGOLD','골드 팩 (6장 모두 골드)','골드 6장',POOL.gold,()=>[...Array(6)].map(()=>rpick(POOL.gold)),['#e5a93b','#3a2606']),
+    vp('VSTAR','올스타 팩 (능력치 85+ 선수만)','올스타 85+',POOL.star,()=>[...Array(6)].map((_,i)=>byRar(POOL.star,i===5?'H':'C')),['#4cb3f0','#0b1e3a']),
+    vp('VKOR','대한민국 팩 (2014·2018·2026 한국 선수)','대한민국',POOL.kor,()=>[...Array(6)].map((_,i)=>byRar(POOL.kor,i===5?'R':'C')),['#d6001c','#0b2a6b'],'국가 팩'),
+  ].filter(p=>p.cards.length);
+  const evOf=p=>{ let t=0; const N=300; for(let i=0;i<N;i++) t+=pullPack(p).reduce((a,c)=>a+c.price,0); return t/N; };
+  const ratio=ICON.price/evOf(ICON);
+  V.forEach(p=>{ p.ev=Math.round(evOf(p)); p.price=Math.ceil((p.cat==='icon'?p.ev*ratio:p.ev*1.15)/5000)*5000; p.year=0; });
+  const catOf=s=>s.id==='ICON'?'icon':s.year===2026?'wc26':s.year===2018?'wc18':s.year===2014?'wc14':'special';
+  const subOf=s=>s.id==='ICON'?'아이콘 팩':s.group?'조별 팩':/XI/.test(s.id)?'베스트 XI':s.id==='WC26SPC'||s.id==='WC26HIS'?'스페셜 · 히스토리':'토너먼트 에디션';
+  SETS.forEach(s=>{ s.cat=catOf(s); s.sub=subOf(s); });
+  PACKS=[...SETS,...V];
+}
+const PACK_CATS=[{k:'wc26',n:'월드컵 2026'},{k:'wc18',n:'월드컵 2018'},{k:'wc14',n:'월드컵 2014'},{k:'icon',n:'아이콘'},{k:'special',n:'스페셜'}];
+const findPack=id=>PACKS.find(p=>p.id===id);
 /* ====== 모달 ====== */
 function openModal(html,cls){ const m=document.getElementById('modal'); m.className='modal-wrap '+(cls||''); m.innerHTML=`<div class="modal">${html}</div>`; m.style.display='flex'; ui.modalOpen=true; Object.keys(game.keys).forEach(k=>game.keys[k]=false); }
 function closeModal(){ const m=document.getElementById('modal'); if(m.classList.contains('auth')&&!S) return; if(typeof live!=='undefined'&&live&&live.min<90){ clearInterval(live.timer); live.silent=true; while(live.min<90) tick(); live.silent=false; return finishMatch(); } m.style.display='none'; m.innerHTML=''; ui.modalOpen=false; if(S&&typeof renderHome==='function') try{renderHome();}catch(e){} }
@@ -57,34 +93,30 @@ function packSVG(set,w){ const h=w*1.5; const c1=set.theme[0], c2=set.theme[1]; 
   return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="pack-svg">
   <rect x="1" y="4" width="${w-2}" height="${h-8}" rx="${w*0.06}" fill="${c1}"/>${pic}
   <text x="${w/2}" y="${h*0.76}" font-size="${w*(set.short.length>7?0.1:0.12)}" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif" fill="#fff">${set.short}</text>
-  <text x="${w/2}" y="${h*0.88}" font-size="${w*0.085}" text-anchor="middle" font-family="Inter, sans-serif" fill="#fff" opacity=".8">스티커 6장</text></svg>`; }
-function openShop(){ shopSel=shopSel||SETS[0]; renderShop(); }
+  <text x="${w/2}" y="${h*0.88}" font-size="${w*0.085}" text-anchor="middle" font-family="Inter, sans-serif" fill="#fff" opacity=".8">카드 6장</text></svg>`; }
+function openShop(){ if(!PACKS.length) buildCatalog(); shopSel=shopSel||PACKS[0]; shopCat=shopSel.cat||'wc26'; renderShop(); }
+let shopCat='wc26';
 function renderShop(){
-  const list=SETS.filter(s=>!shopFilter||s.name.includes(shopFilter)).map(s=>`<div class="pack-item ${shopSel.id===s.id?'sel':''}" onclick="shopSel=SETS.find(x=>x.id==='${s.id}');renderShop()">${packSVG(s,70)}<div class="pi-name">${s.short}</div><div class="pi-sub">${s.year} · ${s.cards.length}종</div><div class="pi-price">${fmt(s.price)}</div></div>`).join('');
-  const owned=shopSel.cards.filter(c=>S.cards[c.id]).length;
-  openModal(`<div class="shop">
-    <div class="shop-left"><div class="shop-title">팩을 골라 주세요 <span class="muted">${SETS.length}종</span></div>
-      <input id="shop-search" placeholder="어떤 팩을 찾으세요?" value="${shopFilter}" oninput="shopFilter=this.value;renderShop();document.getElementById('shop-search').focus()">
-      <div class="pack-list">${list}</div></div>
-    <div class="shop-center">
-      <div class="crumb">진열대로 → 팩 고르기 · 계산하기 · 직접 뜯기</div>
-      <div class="set-tag">${shopSel.id} · 한국어판</div><h2>${shopSel.name}</h2>
-      <div class="counter"><div class="bubble">이 팩으로 드릴까요?</div>
-      <div class="pack-big">${packSVG(shopSel,150)}</div>
-      <div class="receipt"><div><span>고른 팩</span><b>${shopSel.name}</b></div><div><span>수량</span><b>1팩 · 6장</b></div><div class="line"></div><div><span>구매 가격</span><b class="big">${fmt(shopSel.price)}</b></div><div><span>내 잔액</span><b>${fmt(S.money)}</b></div><div><span>구매 후</span><b>${fmt(S.money-shopSel.price)}</b></div></div></div>
-    </div>
-    <div class="shop-right">
-      <div class="steps"><span class="on">01 구매</span><span>02 봉투 개봉</span><span>03 꺼내기</span><span>04 확인</span></div>
-      <h3>계산대에서 팩을 받아요</h3><p class="muted">가격을 확인하고 구매하면, 봉투를 직접 뜯을 수 있어요.</p>
-      <div class="muted small">팩당 6장 · 이 팩 ${shopSel.cards.length}종 중 ${owned}종 보유</div><div class="muted small">카드 6장 평균 시세 약 ${fmt(shopSel.ev)}${shopSel.guar?' · 마지막 1장은 베스트 XI 보장':''}</div>
-      <div class="price-box">1팩 ${fmt(shopSel.price)} · 잔액 ${fmt(S.money)}</div>
-      <button class="btn primary big" ${S.money<shopSel.price?'disabled':''} onclick="buyPack()">1팩 구매하기</button>
-      ${S.money<shopSel.price?'<div class="warn">잔액이 부족해요. 대결에서 이기거나 카드를 팔아 보세요!</div>':''}
-      <button class="btn link" onclick="showOdds()">개봉 확률</button>
-      <button class="btn link" onclick="closeModal()">나가기</button>
+  if(!PACKS.length) buildCatalog(); if(!shopSel||!shopSel.cat) shopSel=findPack((shopSel||{}).id)||PACKS[0];
+  const q=shopFilter.trim(); const list=q?PACKS.filter(s=>s.name.includes(q)||s.short.includes(q)):PACKS.filter(s=>s.cat===shopCat);
+  const subs=[...new Set(list.map(s=>s.sub))];
+  const item=s=>`<div class="pack-item ${shopSel.id===s.id?'sel':''}" onclick="shopSel=findPack('${s.id}');renderShop()">${packSVG(s,64)}<div class="pi-name">${s.short}</div><div class="pi-price">${fmt(s.price)}</div></div>`;
+  const owned=shopSel.cards.filter(c=>S.cards[c.id]).length; const can=S.money>=shopSel.price;
+  openModal(`<div class="shop2">
+    <div class="shop-cats">${PACK_CATS.map(c=>`<button class="cat ${!q&&shopCat===c.k?'on':''}" onclick="shopCat='${c.k}';shopFilter='';renderShop()"><em class="full">${c.n}</em><em class="short">${c.n.replace('월드컵 ','')}</em><span>${PACKS.filter(p=>p.cat===c.k).length}</span></button>`).join('')}
+      <input id="shop-search" placeholder="팩 검색" value="${esc(shopFilter)}" oninput="shopFilter=this.value;renderShop();const e=document.getElementById('shop-search');e.focus();e.setSelectionRange(e.value.length,e.value.length)"></div>
+    <div class="shop-list">${subs.map(sb=>`<h3>${sb}</h3><div class="pack-grid">${list.filter(s=>s.sub===sb).map(item).join('')}</div>`).join('')||'<div class="empty">검색 결과가 없어요</div>'}</div>
+    <div class="shop-buy"><div class="pack-big">${packSVG(shopSel,130)}</div><h2>${shopSel.name}</h2>
+      <div class="kv"><span>카드 종류</span><b>${shopSel.cards.length}종 · ${owned}종 보유</b></div>
+      <div class="kv"><span>평균 시세</span><b>${fmt(shopSel.ev)}</b></div>
+      <div class="kv"><span>가격</span><b class="big">${fmt(shopSel.price)}</b></div>
+      <div class="kv"><span>구매 후 잔액</span><b class="${can?'':'neg'}">${fmt(S.money-shopSel.price)}</b></div>
+      <button class="btn primary big" ${can?'':'disabled'} onclick="buyPack()">구매하기</button>
+      <div class="row" style="justify-content:center;margin-top:6px"><button class="btn link" onclick="showOdds()">확률</button><button class="btn link" onclick="closeModal()">닫기</button></div>
     </div></div>`,'wide');
 }
-function showOdds(){ openModal(`<h2>개봉 확률</h2><p class="muted">카드 1장당 등급이 나올 확률이에요. 마지막 6번째 카드는 반드시 레어 이상!</p><table class="tbl">${Object.entries(RARITY).map(([k,r])=>`<tr><td><span class="rar-dot" style="background:${r.color}"></span>${r.n}</td><td>${r.odds}%</td></tr>`).join('')}</table><button class="btn" onclick="renderShop()">돌아가기</button>`); }
+function showOdds(){ const p=shopSel; const custom=p.virtual||p.style==='icon';
+  openModal(`<h2>개봉 확률</h2>${custom?`<p>${p.name}</p><p class="muted">6장 중 보장 카드 외 나머지는 홀로·골드 등급 위주로 나와요.</p>`:`<p class="muted">카드 1장당 등급 확률 · 6번째 카드는 레어 이상</p><table class="tbl">${Object.entries(RARITY).filter(([k])=>k!=='I').map(([k,r])=>`<tr><td><span class="rar-dot" style="background:${r.color}"></span>${r.n}</td><td>${r.odds}%</td></tr>`).join('')}</table>`}<button class="btn" onclick="renderShop()">돌아가기</button>`); }
 let opening=null;
 function buyPack(){
   if(!econOK()) return; if(S.money<shopSel.price) return; S.money-=shopSel.price; S.stats.packs++;
@@ -117,32 +149,48 @@ function showAll(){
     <div class="row"><button class="btn primary" onclick="buyPack()" ${S.money<opening.set.price?'disabled':''}>같은 팩 또 사기 (${fmt(opening.set.price)})</button><button class="btn" onclick="renderShop()">다른 팩 고르기</button><button class="btn" onclick="closeModal()">카드숍으로</button></div></div>`,'wide');
 }
 /* ====== 카드북 ====== */
-let bk={page:0,filter:'',set:'',sort:'set'};
+let bk={page:0,filter:'',set:'',sort:'rating',dir:-1,sel:null};
 function myCards(){ return Object.keys(S.cards).map(id=>CARDS[id]).filter(Boolean); }
-function openBinder(){ bk.page=0; renderBinder(); }
-function renderBinder(){
+function openBinder(){ bk.page=0; bk.sel=null; renderBinder(); }
+function setOptions(cur){ if(!PACKS.length) buildCatalog(); return PACK_CATS.map(c=>`<optgroup label="${c.n}">${SETS.filter(s=>s.cat===c.k).map(s=>`<option value="${s.id}" ${cur===s.id?'selected':''}>${s.short}</option>`).join('')}</optgroup>`).join(''); }
+function binderList(){
   let cards=myCards();
   if(bk.set) cards=cards.filter(c=>c.set===bk.set);
   if(bk.filter) cards=cards.filter(c=>c.name.includes(bk.filter)||c.id.includes(bk.filter.toUpperCase())||NATIONS[c.nat].n.includes(bk.filter));
-  const sorters={set:(a,b)=>a.id.localeCompare(b.id),rating:(a,b)=>b.rating-a.rating,price:(a,b)=>b.price-a.price,rar:(a,b)=>'CRHGLI'.indexOf(b.rar)-'CRHGLI'.indexOf(a.rar)||b.rating-a.rating};
-  cards.sort(sorters[bk.sort]);
-  const per=12, pages=Math.max(1,Math.ceil(cards.length/per)); bk.page=Math.min(bk.page,pages-1);
-  const pg=cards.slice(bk.page*per,bk.page*per+per);
-  const slot=c=>c?`<div class="slot" onclick="cardDetail('${c.id}','renderBinder')">${cardSVG(c,110)}<div class="cnt">×${S.cards[c.id]}</div><div class="sn">${c.name}</div></div>`:'<div class="slot empty"></div>';
-  const left=Array.from({length:6},(_,i)=>slot(pg[i])).join(''), right=Array.from({length:6},(_,i)=>slot(pg[i+6])).join('');
-  const totalVal=myCards().reduce((a,c)=>a+c.price*S.cards[c.id],0);
-  openModal(`<div class="binder"><div class="binder-head"><div><h2>내 카드북</h2><div class="muted">${S.name}의 카드북 · ${cardCount(S)} / 1,000장 · ${myCards().length}종 · 총 시세 ${fmt(totalVal)}</div></div>
-    <div class="binder-tools"><input id="bk-search" placeholder="카드 이름 · 번호 · 국가 검색" value="${bk.filter}" oninput="bk.filter=this.value;bk.page=0;renderBinder();document.getElementById('bk-search').focus()">
-    <select onchange="bk.set=this.value;bk.page=0;renderBinder()"><option value="">모든 팩</option>${SETS.map(s=>`<option value="${s.id}" ${bk.set===s.id?'selected':''}>${s.short}</option>`).join('')}</select>
-    <select onchange="bk.sort=this.value;renderBinder()"><option value="set" ${bk.sort==='set'?'selected':''}>번호순</option><option value="rar" ${bk.sort==='rar'?'selected':''}>등급순</option><option value="rating" ${bk.sort==='rating'?'selected':''}>능력치순</option><option value="price" ${bk.sort==='price'?'selected':''}>시세순</option></select></div></div>
-    <div class="binder-book"><div class="page">${left}</div><div class="rings"><i></i><i></i><i></i></div><div class="page">${right}</div></div>
-    <div class="binder-foot"><button class="btn" ${bk.page===0?'disabled':''} onclick="bk.page--;renderBinder()">이전 페이지</button><span class="muted">${bk.page+1} / ${pages} 펼침 · ${cards.length}종</span><button class="btn" ${bk.page>=pages-1?'disabled':''} onclick="bk.page++;renderBinder()">다음 페이지</button></div>
-    <div class="row right"><button class="btn" onclick="openCollection()">도감 보기</button><button class="btn" onclick="closeModal()">닫기</button></div></div>`,'wide');
+  const key={set:c=>c.id,rating:c=>c.rating,price:c=>c.price,rar:c=>'CRHGLI'.indexOf(c.rar)*1000+c.rating,count:c=>S.cards[c.id]}[bk.sort];
+  cards.sort((a,b)=>{ const x=key(a),y=key(b); return (typeof x==='string'?x.localeCompare(y):x-y)*bk.dir||a.id.localeCompare(b.id); });
+  return cards;
+}
+function squadIds(){ try{ return new Set(squadOf().slots.filter(Boolean)); }catch(e){ return new Set(); } }
+const sellPrice=c=>Math.round(c.price*0.6/100)*100;
+function selTotal(){ let n=0,v=0; Object.entries(bk.sel||{}).forEach(([id,q])=>{ n+=q; v+=sellPrice(CARDS[id])*q; }); return {n,v}; }
+function selMax(id){ return S.cards[id]-(squadIds().has(id)?1:0); }
+function binderTap(id){ if(!bk.sel) return cardDetail(id,'renderBinder'); const m=selMax(id); if(m<=0) return toast('스쿼드에 있는 카드라 마지막 1장은 팔 수 없어요'); if(bk.sel[id]) delete bk.sel[id]; else bk.sel[id]=m; renderBinder(); }
+function binderSelect(mode){ bk.sel=bk.sel||{}; const list=binderList(); if(mode==='none') bk.sel={}; else list.forEach(c=>{ const m=mode==='dup'?Math.min(selMax(c.id),S.cards[c.id]-1):selMax(c.id); if(m>0) bk.sel[c.id]=m; else delete bk.sel[c.id]; }); renderBinder(); }
+function sellSelected(){ if(!econOK()) return; const t=selTotal(); if(!t.n) return toast('선택한 카드가 없어요'); if(!confirm(`${t.n}장을 ${fmt(t.v)}에 팔까요?`)) return;
+  Object.entries(bk.sel).forEach(([id,q])=>{ q=Math.min(q,selMax(id)); if(q>0){ removeCard(S,id,q); S.money+=sellPrice(CARDS[id])*q; } });
+  logIt(`카드 ${t.n}장 일괄 판매 (+${fmt(t.v)})`); bk.sel={}; refreshHUD(); toast(`${t.n}장을 ${fmt(t.v)}에 팔았어요`); renderBinder(); }
+function renderBinder(){
+  const cards=binderList(); const per=bk.sel?24:12, pages=Math.max(1,Math.ceil(cards.length/per)); bk.page=Math.min(bk.page,pages-1);
+  const pg=cards.slice(bk.page*per,bk.page*per+per); const sel=bk.sel||{};
+  const slot=c=>c?`<div class="slot ${sel[c.id]?'picked':''}" onclick="binderTap('${c.id}')">${cardSVG(c,110)}<div class="cnt">×${S.cards[c.id]}</div>${sel[c.id]?`<div class="pick">${sel[c.id]}장</div>`:''}<div class="sn">${c.name}</div><div class="sv">${c.rating} · ${fmt(c.price)}</div></div>`:'<div class="slot empty"></div>';
+  const body=bk.sel?`<div class="page sel-grid">${pg.map(slot).join('')}</div>`:`<div class="binder-book"><div class="page">${Array.from({length:6},(_,i)=>slot(pg[i])).join('')}</div><div class="page">${Array.from({length:6},(_,i)=>slot(pg[i+6])).join('')}</div></div>`;
+  const totalVal=myCards().reduce((a,c)=>a+c.price*S.cards[c.id],0); const t=selTotal();
+  openModal(`<div class="binder"><div class="binder-head"><div><h2>카드북</h2><div class="muted">${cardCount(S)}장 · ${myCards().length}종 · 총 시세 ${fmt(totalVal)}</div></div>
+    <div class="binder-tools"><input id="bk-search" placeholder="이름 · 국가 검색" value="${esc(bk.filter)}" oninput="bk.filter=this.value;bk.page=0;renderBinder();const e=document.getElementById('bk-search');e.focus();e.setSelectionRange(e.value.length,e.value.length)">
+    <select onchange="bk.set=this.value;bk.page=0;renderBinder()"><option value="">모든 팩</option>${setOptions(bk.set)}</select>
+    <select onchange="bk.sort=this.value;renderBinder()">${[['rating','능력치'],['price','시세'],['rar','등급'],['count','보유 수'],['set','번호']].map(([v,n])=>`<option value="${v}" ${bk.sort===v?'selected':''}>${n}</option>`).join('')}</select>
+    <button class="btn" onclick="bk.dir*=-1;renderBinder()">${bk.dir<0?'내림차순 ↓':'오름차순 ↑'}</button>
+    <button class="btn ${bk.sel?'primary':''}" onclick="bk.sel=bk.sel?null:{};renderBinder()">${bk.sel?'선택 종료':'일괄 선택'}</button></div></div>
+    ${bk.sel?`<div class="selbar"><button class="chip" onclick="binderSelect('all')">전체 선택</button><button class="chip" onclick="binderSelect('dup')">중복만 선택</button><button class="chip" onclick="binderSelect('none')">선택 해제</button><span class="muted">${t.n}장 · ${fmt(t.v)}</span><button class="btn primary" ${t.n?'':'disabled'} onclick="sellSelected()">선택 판매</button></div>`:''}
+    ${body}
+    <div class="binder-foot"><button class="btn" ${bk.page===0?'disabled':''} onclick="bk.page--;renderBinder()">이전</button><span class="muted">${bk.page+1} / ${pages} · ${cards.length}종</span><button class="btn" ${bk.page>=pages-1?'disabled':''} onclick="bk.page++;renderBinder()">다음</button></div>
+    <div class="row right"><button class="btn" onclick="openCollection()">도감</button><button class="btn" onclick="closeModal()">닫기</button></div></div>`,'wide');
 }
 function openCollection(){
   const set=SETS.find(s=>s.id===(bk.set||SETS[0].id));
   openModal(`<div class="binder"><div class="binder-head"><div><h2>도감 · ${set.name}</h2><div class="muted">${set.cards.filter(c=>S.cards[c.id]).length} / ${set.cards.length}종 수집</div></div>
-    <select onchange="bk.set=this.value;openCollection()">${SETS.map(s=>`<option value="${s.id}" ${set.id===s.id?'selected':''}>${s.short}</option>`).join('')}</select></div>
+    <select onchange="bk.set=this.value;openCollection()">${setOptions(set.id)}</select></div>
     <div class="dex">${set.cards.map(c=>`<div class="dex-item ${S.cards[c.id]?'':'missing'}" onclick="${S.cards[c.id]?`cardDetail('${c.id}','openCollection')`:''}"><span class="dex-no">${String(c.no).padStart(3,'0')}</span><span class="rar-dot" style="background:${RARITY[c.rar].color}"></span>${c.name}<span class="muted small">${NATIONS[c.nat].n}</span></div>`).join('')}</div>
     <div class="row right"><button class="btn" onclick="renderBinder()">카드북으로</button></div></div>`,'wide');
 }
@@ -153,7 +201,7 @@ function cardDetail(id,back){
     <div class="stat-row"><span>국가</span><b>${NATIONS[c.nat].n}</b></div><div class="stat-row"><span>포지션</span><b>${c.pp?`${c.pp[0]} <span class="muted small">${POS_KO[c.pp[0]]}</span>${c.pp.length>1?` · 서브 ${c.pp.slice(1).join(', ')}`:''}`:POS_KO[c.pos]}</b></div><div class="stat-row"><span>능력치</span><b>${c.rating}</b></div>${c.dob?`<div class="stat-row"><span>생년월일</span><b>${c.dob.split('-').reverse().join('.')}</b></div><div class="stat-row"><span>키 / 몸무게</span><b>${c.h.replace(',','.')} m / ${c.w} kg</b></div>`:''}${c.kind==='player'||!c.kind?attrHTML(c):''}${c.edition?`<div class="stat-row"><span>에디션</span><b>${EDITION_INFO[c.edition].n}</b></div>`:''}${c.award?`<div class="stat-row"><span>수상</span><b>${c.award}</b></div>`:''}${c.club?`<div class="stat-row"><span>소속 클럽</span><b style="font-size:12px">${c.club}</b></div>`:''}<div class="stat-row"><span>보유</span><b>${S.cards[c.id]||0}장</b></div><div class="stat-row"><span>시세</span><b>${fmt(c.price)}</b></div>
     <div class="row"><button class="btn" onclick="${back}()">돌아가기</button>${S.cards[c.id]?`<button class="btn primary" onclick="sellCard('${c.id}','${back}')">상인에게 판매 (${fmt(sell)})</button>`:''}</div></div></div>`);
 }
-function sellCard(id,back){ if(!econOK()) return; const c=CARDS[id]; if(!S.cards[id]) return; const sell=Math.round(c.price*0.6/100)*100; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
+function sellCard(id,back){ if(!econOK()) return; const c=CARDS[id]; if(!S.cards[id]) return; if(S.cards[id]<=1&&squadIds().has(id)) return toast('스쿼드에 있는 카드예요. 스쿼드에서 빼고 팔아 주세요'); const sell=Math.round(c.price*0.6/100)*100; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
 /* ====== 용돈 ====== */
 function openBank(){
   const can=S.lastAllowance!==todayStr();
@@ -196,8 +244,15 @@ function doTrade(){
 /* ====== 기록 / 메뉴 / 프로필 ====== */
 function openClubHistory(){ const c=clubOf(); openModal(`<h2>${c.name} 시즌 기록</h2><div class="loglist">${c.history.map(h=>`<div>시즌 ${h.season} · ${TIER_NAME[h.tier]} ${h.rank}위 · 승점 ${h.pts}</div>`).join('')||'<div class="muted">아직 끝난 시즌이 없어요</div>'}</div><div class="muted small">통산 전적 ${S.stats.wins}승 ${S.stats.battles-S.stats.wins}무·패 · 리그 우승 ${c.trophies.league} · 컵 우승 ${c.trophies.cup}</div><div class="row right"><button class="btn" onclick="closeModal()">닫기</button></div>`); }
 function openLog(){ openModal(`<h2>기록</h2><div class="muted">팩 ${S.stats.packs}개 개봉 · 대결 ${S.stats.wins}승 ${S.stats.battles-S.stats.wins}패 · 교환 ${S.stats.trades}회</div><div class="loglist">${S.log.map(l=>`<div><span class="muted small">${l.t}</span> ${l.m}</div>`).join('')||'<div class="muted">아직 기록이 없어요</div>'}</div><button class="btn" onclick="closeModal()">닫기</button>`); }
-function openMenu(){ openModal(`<h2>메뉴</h2><div class="menu-list"><button class="btn" onclick="openAccount()">내 계정 (${Account.id})</button><button class="btn" onclick="showHelp()">게임 방법</button><button class="btn" onclick="openLog()">기록</button><button class="btn" onclick="openRandomBox()">랜덤박스</button>${isAdmin()&&famOn()?'<button class="btn" onclick="openAdmin()">관리자: 전원 지급</button>':''}<button class="btn danger" onclick="if(confirm('정말 이 프로필을 처음부터 다시 시작할까요?')){DB.profiles[DB.current]=newProfile(S.name);S=DB.profiles[DB.current];refreshHUD();closeModal();toast('새로 시작했어요!')}">처음부터 다시</button><button class="btn" onclick="closeModal()">닫기</button></div>`); }
-function showHelp(){ openModal(`<h2>게임 방법</h2><div class="help"><p><b>메인 화면</b>에서 추천 팩을 바로 사거나, 오른쪽 타일로 상점·카드북·트레이드·대결·용돈 상자에 들어가요. 창은 <b>Esc</b>로 닫아요.</p><p><b>카드 상인</b> 대회별 스티커팩을 사고 직접 뜯어요. 카드북에서 카드를 눌러 상인에게 팔 수도 있어요 (시세의 60%).</p><p><b>카드북</b> 모은 카드를 보고, 도감에서 빠진 번호를 확인해요.</p><p><b>교환 테이블</b> 친구 민준·서연·지호와 카드를 1:1로 바꿔요. 친구가 좋아하는 팀 카드는 더 높게 쳐줘요.</p><p><b>대결 테이블</b> 카드 5장으로 5라운드 대결! 능력치 + 포지션 보너스 + 주사위로 승부해요. 이기면 상금과 보너스 카드.</p><p><b>용돈 상자</b> 하루 한 번 용돈 30,000원.</p><p><b>팩 종류</b> 월드컵 2026(조별 12종 + 스페셜·히스토리 + 토너먼트 에디션 6종), 월드컵 2018(조별 8종), 월드컵 2014(조별 8종).</p><p class="muted small">진행 상황은 이 브라우저에 자동 저장돼요. 프로필을 여러 개 만들어 형제·친구와 번갈아 할 수 있어요.</p></div><button class="btn" onclick="closeModal()">닫기</button>`); }
+function openMenu(){ openModal(`<h2>메뉴</h2><div class="menu-list"><button class="btn" onclick="openAccount()">내 계정 (${Account.id})</button><button class="btn" onclick="showHelp()">게임 방법</button><button class="btn" onclick="openLog()">기록</button><button class="btn" onclick="openRandomBox()">랜덤박스</button>${isAdmin()&&famOn()?'<button class="btn" onclick="openAdmin()">관리자</button>':''}<button class="btn danger" onclick="if(confirm('정말 이 프로필을 처음부터 다시 시작할까요?')){DB.profiles[DB.current]=newProfile(S.name);S=DB.profiles[DB.current];refreshHUD();closeModal();toast('새로 시작했어요!')}">처음부터 다시</button><button class="btn" onclick="closeModal()">닫기</button></div>`); }
+function showHelp(){ openModal(`<h2>KICK OFF 27 게임 방법</h2><div class="help">
+<p><b>카드팩</b> 월드컵 2026 · 2018 · 2014 · 아이콘 · 스페셜 카테고리에서 팩을 사서 뜯어요.</p>
+<p><b>카드북</b> 정렬(능력치·시세·등급, 오름/내림)하고, <b>일괄 선택</b>으로 여러 장을 한 번에 팔 수 있어요(시세의 60%).</p>
+<p><b>스쿼드</b> 11명을 급여 한도 안에서 골라요. 포지션이 맞을수록 능력치가 그대로 나와요.</p>
+<p><b>패밀리 리그</b> 가족 계정끼리 매주(월~일) 상대마다 하루 1경기. 일요일 순위로 상금.</p>
+<p><b>연습 리그 · FA컵</b> AI 팀과 경기해서 돈을 벌어요.</p>
+<p><b>트레이드 · 랜덤박스 · 용돈</b> 카드 교환, 하루 3번 랜덤박스, 하루 1번 용돈.</p>
+</div><button class="btn" onclick="closeModal()">닫기</button>`); }
 function openProfiles(){ return openAccount(); }
 function _openProfilesOld(){
   openModal(`<h2>누가 놀까요?</h2><div class="profile-list">${DB.profiles.map((p,i)=>`<div class="profile ${i===DB.current?'sel':''}" onclick="selectProfile(${i})"><div class="p-face"></div><div><b>${p.name}</b><div class="muted small">${fmt(p.money)} · ${cardCount(p)}장</div></div></div>`).join('')}</div>
@@ -207,7 +262,7 @@ function _openProfilesOld(){
 }
 function selectProfile(i){ DB.current=i; S=DB.profiles[i]; refreshHUD(); closeModal(); toast(`${S.name}, 어서 와!`); }
 async function bootstrap(){
-  load(); // 이전 버전(프로필 방식) 로컬 저장 → 가입 시 가져오기용
+  buildCatalog(); load(); // 이전 버전(프로필 방식) 로컬 저장 → 가입 시 가져오기용
   initMap(); setSyncState('pending');
   await initCloud();
   let p=null; try{ p=await accountResume(); }catch(e){ console.warn(e); }
