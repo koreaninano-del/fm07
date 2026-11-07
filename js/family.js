@@ -1,4 +1,4 @@
-/* ====== 가족 리그 · 가족 트레이드 (Firestore 공유) ====== */
+/* ====== 패밀리 리그 · 가족 트레이드 (Firestore 공유) ====== */
 const FAM_AI=[{uid:'ai_seoul',name:'서울 썬더',idx:0,str:78},{uid:'ai_busan',name:'부산 웨이브',idx:1,str:76},{uid:'ai_gimhae',name:'김해 가야 FC',idx:2,str:80}].map(a=>({...a,str:Math.round(a.str+AI_WAGE_BONUS)}));
 const Fam={clubs:{},results:[],trades:[],season:null,unsubTrades:null,timer:null,loaded:false,banned:{}};
 function famBanned(uid){ return !!(Fam.banned&&Fam.banned[uid||Account.uid]); }
@@ -37,7 +37,7 @@ function famPublish(){
   if(!famOn()||!S) return; clearTimeout(famPubTimer);
   famPubTimer=setTimeout(async()=>{ try{
     const c=clubOf(); const sq=squadOf(); const ready=!squadReady();
-    await famDB().collection('clubs').doc(Account.uid).set({uid:Account.uid,id:Account.id,name:c.name,owner:S.name,rating:ready?squadRating(sq):0,ready,squad:{formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots},cards:Object.keys(S.cards).filter(id=>CARDS[id]),updated:Date.now()});
+    await famDB().collection('clubs').doc(Account.uid).set({uid:Account.uid,id:Account.id,name:c.name,owner:S.name,rating:ready?squadRating(sq):0,ready,squad:{formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots},cards:Object.keys(S.cards).filter(id=>CARDS[id]),value:Object.keys(S.cards).reduce((t,id)=>t+(CARDS[id]?CARDS[id].price*S.cards[id]:0),0),money:S.money,cardN:cardCount(S),updated:Date.now()});
     if(!Fam.clubs[Account.uid]){ await famLoad(); if(typeof renderHome==='function') renderHome(); }
   }catch(e){ console.warn('club publish',e); } },2000);
 }
@@ -79,20 +79,20 @@ function famOpponentTeam(uid){
 /* 시즌 중간에 들어온 계정 지원: 다른 가족 클럽이 이미 있으면 처음 한 번 200,000원 + 기록 */
 function famWelcome(){
   if(!S||S.famWelcome) return; const others=Object.values(Fam.clubs).filter(c=>c.uid!==Account.uid).length;
-  S.famWelcome=true; if(others>=1&&(S.created||'')>='2026-11-06'){ S.money+=200000; logIt('신입 클럽 지원금 +200,000원 (가족 리그에 늦게 합류)'); toast('신입 클럽 지원금 200,000원을 받았어요!'); refreshHUD(); }
+  S.famWelcome=true; if(others>=1&&(S.created||'')>='2026-11-06'){ S.money+=200000; logIt('신입 클럽 지원금 +200,000원 (패밀리 리그에 늦게 합류)'); toast('신입 클럽 지원금 200,000원을 받았어요!'); refreshHUD(); }
   save();
 }
 function playFamily(uid){
-  if(!econOK()) return; if(famBanned()) return toast('관리자가 가족 리그 참가를 막아 두었어요');
+  if(!econOK()) return; if(famBanned()) return toast('관리자가 패밀리 리그 참가를 막아 두었어요');
   const err=squadReady(); if(err) return toast(err+' (스쿼드 편집에서)');
   if(famGamesLeft(uid)<=0) return toast('이 상대와는 이번 시즌 할 수 있는 경기를 다 했어요 (하루 1경기)');
   const away=famOpponentTeam(uid); if(!away) return toast('상대가 아직 스쿼드 11명을 다 채우지 않았어요');
   const w=squadWage(squadOf()); if(S.money<w) return toast(`급여 ${fmt(w)}이 부족해요.`);
   S.money-=w; save();
-  startMatch(away,{kind:'family',wages:w,label:`가족 리그 · vs ${away.name}`,onEnd:r=>{
+  startMatch(away,{kind:'family',wages:w,label:`패밀리 리그 · vs ${away.name}`,onEnd:r=>{
     const reward=r.win?Math.round(w*1.3)+3000:r.draw?w:0; S.money+=reward;
     famAddResult({season:seasonKey(),day:todayStr(),home:Account.uid,homeName:clubOf().name,away:uid,awayName:away.name,hs:r.hs,as:r.as,t:Date.now()}).then(()=>famLoad()).catch(e=>console.warn(e));
-    logIt(`가족 리그 ${away.name} ${r.hs}:${r.as} ${r.win?'승':r.draw?'무':'패'} (+${fmt(reward)}/-${fmt(w)})`); save();
+    logIt(`패밀리 리그 ${away.name} ${r.hs}:${r.as} ${r.win?'승':r.draw?'무':'패'} (+${fmt(reward)}/-${fmt(w)})`); save();
     return {html:`<div class="price">${reward-w>=0?'+':''}${fmt(reward-w)}</div><div class="muted small">급여 ${fmt(w)} · 상금 ${fmt(reward)} · 순위표에 반영돼요</div>`};
   }});
 }
@@ -102,24 +102,23 @@ async function famSeasonAward(){
   if(S.famAwarded===prev) return; if(!S.famAwarded||!String(S.famAwarded).startsWith('W')){ S.famAwarded=prev; save(); return; }
   const rs=await famDB().collection('results').where('season','==',prev).get(); const saved=Fam.results; Fam.results=rs.docs.map(d=>d.data());
   const tbl=famTable(); Fam.results=saved; const rank=tbl.findIndex(x=>x.t.uid===Account.uid)+1; S.famAwarded=prev;
-  if(rank>0&&tbl.length>1){ const prize=[60000,40000,25000][rank-1]||10000; S.money+=prize; let msg=`${seasonLabel(prev)} 가족 리그 ${rank}위 · 상금 +${fmt(prize)}`;
+  if(rank>0&&tbl.length>1){ const prize=[60000,40000,25000][rank-1]||10000; S.money+=prize; let msg=`${seasonLabel(prev)} 패밀리 리그 ${rank}위 · 상금 +${fmt(prize)}`;
     if(rank===1){ clubOf().trophies.league++; const pool=Object.values(CARDS).filter(x=>x.rar==='G'&&!x.edition); const b=pool[Math.floor(Math.random()*pool.length)]; addCard(S,b.id); msg+=` · 우승 보상 카드 ${b.name}`; }
     clubOf().history.unshift({season:seasonLabel(prev),tier:0,rank,pts:tbl[rank-1].pts}); logIt(msg); toast(msg); }
   save();
 }
-/* ---- 가족 리그 패널 ---- */
+/* ---- 패밀리 리그 패널 ---- */
 function renderFamilyPanel(){
   const el=document.getElementById('league-panel'); if(!el) return;
-  if(!famOn()){ el.innerHTML='<div class="empty">가족 리그는 클라우드 모드(사이트 접속 + Firebase 설정)에서만 열려요. 지금은 연습용 AI 리그를 아래에서 할 수 있어요.</div>'; return; }
-  if(!Fam.loaded){ el.innerHTML='<div class="empty">가족 리그 불러오는 중</div>'; return; }
-  if(famBanned()){ el.innerHTML='<div class="empty">관리자가 이 계정의 가족 리그 참가를 막아 두었어요.</div>'; return; }
+  if(!famOn()){ el.innerHTML='<div class="empty">클라우드 모드에서만 열려요</div>'; return; }
+  if(!Fam.loaded){ el.innerHTML='<div class="empty">불러오는 중…</div>'; return; }
+  if(famBanned()){ el.innerHTML='<div class="empty">관리자가 참가를 막아 두었어요</div>'; return; }
   const tbl=famTable(); const err=squadReady(); const w=squadWage(squadOf());
   const opps=tbl.filter(x=>x.t.uid!==Account.uid);
-  el.innerHTML=`<div class="muted small" style="margin-bottom:8px">${seasonLabel(Fam.season)} · ${daysLeftInWeek()}일 남음 · 일요일 밤 순위로 상금, 1위는 골드 카드</div>
-    <table class="ltable"><tr><th>#</th><th>클럽</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${tbl.map((r,i)=>`<tr class="${r.t.uid===Account.uid?'me':''}"><td>${i+1}</td><td>${r.t.name}${r.t.human?` <span class="muted small">${r.t.owner||''}</span>`:' <span class="muted small">AI</span>'}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`).join('')}</table>
-    <div class="chips col" style="margin-top:12px">${opps.map(o=>{ const left=famGamesLeft(o.t.uid); const played=famPairGames(Account.uid,o.t.uid); return `<div class="next" style="margin:0"><div><b>${o.t.name}</b> <span class="muted small">${o.t.human?(o.t.owner||'')+' · ':''}능력치 ${o.t.rating||'–'}${o.t.human&&!o.t.ready?' · 스쿼드 미완성':''} · ${played}/${famPairAllowed()}경기</span></div><button class="btn ${left?'primary':''}" onclick="playFamily('${o.t.uid}')" ${err||!left||(o.t.human&&!o.t.ready)?'disabled':''}>${left?(left>1?`경기하기 (${left}번 남음)`:'경기하기'):'완료'}</button></div>`; }).join('')}</div>
-    <div class="muted small" style="margin-top:8px">상대마다 하루 1경기(${famPairAllowed()}일차) · 늦게 들어온 팀은 밀린 경기를 따라잡을 수 있어요 · AI끼리는 자동 경기 · 급여 ${fmt(w)}, 승리 시 ${fmt(Math.round(w*1.3)+3000)}</div>
-    ${Fam.results.filter(r=>r.home===Account.uid||r.away===Account.uid).slice(-3).reverse().map(r=>`<div class="small muted">${r.day} ${r.homeName} ${r.hs}:${r.as} ${r.awayName}</div>`).join('')}`;
+  el.innerHTML=`<div class="muted small" style="margin-bottom:8px">${seasonLabel(Fam.season)} · ${daysLeftInWeek()}일 남음</div>
+    <div class="tblwrap"><table class="ltable fixed"><colgroup><col class="c-rank"><col><col class="c-n"><col class="c-n"><col class="c-n"><col class="c-n"><col class="c-gd"><col class="c-pts"></colgroup><tr><th>#</th><th>클럽</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${tbl.map((r,i)=>`<tr class="${r.t.uid===Account.uid?'me':''}"><td>${i+1}</td><td><div class="ell">${esc(r.t.name)}</div><div class="ell sub">${r.t.human?esc(r.t.owner||''):'AI'}</div></td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`).join('')}</table></div>
+    <div class="opps">${opps.map(o=>{ const left=famGamesLeft(o.t.uid); const played=famPairGames(Account.uid,o.t.uid); return `<div class="opp"><div class="opp-info"><div class="ell"><b>${esc(o.t.name)}</b></div><div class="ell muted small">능력치 ${o.t.rating||'–'}${o.t.human&&!o.t.ready?' · 스쿼드 미완성':''} · ${played}/${famPairAllowed()}</div></div><button class="btn ${left?'primary':''}" onclick="playFamily('${o.t.uid}')" ${err||!left||(o.t.human&&!o.t.ready)?'disabled':''}>${left?(left>1?`경기 (${left})`:'경기'):'완료'}</button></div>`; }).join('')}</div>
+    <div class="muted small" style="margin-top:10px">급여 ${fmt(w)} · 승리 ${fmt(Math.round(w*1.3)+3000)}</div>`;
 }
 /* ---- 가족 트레이드 ---- */
 let ft={to:null,offer:null,want:null};
