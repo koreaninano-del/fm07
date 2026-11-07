@@ -1,5 +1,5 @@
 /* ====== 가족 리그 · 가족 트레이드 (Firestore 공유) ====== */
-const FAM_AI=[{uid:'ai_seoul',name:'서울 썬더',idx:0,str:78},{uid:'ai_busan',name:'부산 웨이브',idx:1,str:76},{uid:'ai_gimhae',name:'김해 가야 FC',idx:2,str:80}];
+const FAM_AI=[{uid:'ai_seoul',name:'서울 썬더',idx:0,str:78},{uid:'ai_busan',name:'부산 웨이브',idx:1,str:76},{uid:'ai_gimhae',name:'김해 가야 FC',idx:2,str:80}].map(a=>({...a,str:Math.round(a.str+AI_WAGE_BONUS)}));
 const Fam={clubs:{},results:[],trades:[],season:null,unsubTrades:null,timer:null,loaded:false,banned:{}};
 function famBanned(uid){ return !!(Fam.banned&&Fam.banned[uid||Account.uid]); }
 function famOn(){ return Account.mode==='cloud'&&Account.uid; }
