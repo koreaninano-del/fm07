@@ -16,7 +16,7 @@ const POS_PROFILE={GK:{pac:-12,sho:-25,pas:-8,dri:-20,def:10,phy:4},DF:{pac:-3,s
 function attrs(c){ if(c._a) return c._a; if(c.a){ const t=TRAITS[hashStr(c.name)%7]; c._a=Object.assign({},c.a,{trait:t}); return c._a; } const h=hashStr(c.name+'|'+c.nat); const p=POS_PROFILE[c.pos]||POS_PROFILE.MF; const t=TRAITS[h%TRAITS.length]; const a={};
   ['pac','sho','pas','dri','def','phy'].forEach((k,i)=>{ const off=((h>>(i*3))%9)-4; a[k]=Math.max(30,Math.min(99,c.rating+p[k]+off+(t.up===k?5:0)-(t.dn===k?3:0))); });
   a.trait=t; c._a=a; return a; }
-function wage(c){ return Math.max(300,Math.round(300*Math.pow(1.13,c.rating-70)/100)*100); }
+function wage(c){ return Math.max(300,Math.round(300*Math.pow(1.13,(c.baseRating||c.rating)-70)/100)*100); }
 function attrHTML(c){ const a=attrs(c); return `<div class="attrs">${Object.keys(ATTR_KO).map(k=>`<div class="attr"><span>${ATTR_KO[k]}</span><div class="bar"><i style="width:${a[k]}%;background:${a[k]>=85?'#15803d':a[k]>=70?'#65a30d':a[k]>=55?'#d97706':'#dc2626'}"></i></div><b>${a[k]}</b></div>`).join('')}</div><div class="stat-row"><span>특성</span><b>${a.trait.n} <span class="muted small">· ${a.trait.d}</span></b></div><div class="stat-row"><span>경기당 급여</span><b>${fmt(wage(c))}</b></div>`; }
 const FORMATIONS={
  '4-3-3':[['GK',50,92],['LB',15,72],['CB',38,76],['CB',62,76],['RB',85,72],['CM',30,52],['CDM',50,56],['CM',70,52],['LW',20,24],['ST',50,18],['RW',80,24]],
@@ -41,12 +41,12 @@ function effAttrs(c,slotPos){ const a=attrs(c); const pen=posPenalty(c,slotPos);
 let mt={opp:null};
 function openBattleLobby(){ renderSquad(); }
 function squadReady(){ const sq=squadOf(); if(sq.slots.some(x=>!x)) return '11명을 모두 채워 주세요'; if(squadWage(sq)>WAGE_CAP) return '급여 예산을 넘었어요'; return ''; }
-function squadRating(sq){ sq=sq||squadOf(); const F=FORMATIONS[sq.formation]; const v=sq.slots.map((id,i)=>id?CARDS[id].rating-posPenalty(CARDS[id],F[i][0]):0); return Math.round(v.reduce((a,b)=>a+b,0)/11); }
+function squadRating(sq){ sq=sq||squadOf(); const F=FORMATIONS[sq.formation]; const v=sq.slots.map((id,i)=>{ if(!id) return 0; const c=myCard(id); return c.rating-posPenalty(c,F[i][0]); }); return Math.round(v.reduce((a,b)=>a+b,0)/11); }
 function renderSquad(msg){
   const sq=squadOf(); const F=FORMATIONS[sq.formation]; const w=squadWage(sq); const filled=sq.slots.filter(Boolean).length;
   const nats={}; sq.slots.forEach(id=>{ if(id){ nats[CARDS[id].nat]=(nats[CARDS[id].nat]||0)+1; } });
   const chem=Object.values(nats).reduce((a,n)=>a+(n>=2?n-1:0),0);
-  const pitch=F.map((s,i)=>{ const id=sq.slots[i]; const c=id?CARDS[id]:null; const pen=c?posPenalty(c,s[0]):0;
+  const pitch=F.map((s,i)=>{ const id=sq.slots[i]; const c=id?myCard(id):null; const pen=c?posPenalty(c,s[0]):0;
     return `<div class="pslot ${c?'':'empty'} ${pen?'oop':''}" style="left:${s[1]}%;top:${6+s[2]*0.86}%" onclick="pickSlot(${i})" title="${s[0]}">${c?`<div class="pimg">${cardSVG(c,54)}</div><div class="pname">${c.name.split(' ').pop()}</div><div class="pr">${s[0]} ${c.rating-pen}${pen?' <span class="oopt">('+posStr(c)+')</span>':''}</div>`:`<div class="pplus">+</div><div class="pname">${s[0]}</div><div class="pr small">${POS_KO[s[0]]}</div>`}</div>`; }).join('');
   const matchesToday=(S.matchDay===todayStr()?S.matchCount:0)||0;
   openModal(`<div class="squad"><div class="sq-left"><div class="sq-head"><h2>축구 대결 · 선발 명단</h2><div class="muted small">자리를 눌러 선수를 넣어요. 주·서브 포지션이 맞으면 100%, 비슷한 자리는 조금, 다른 계열은 많이 떨어져요.</div></div>
@@ -92,7 +92,7 @@ function buildOpponent(f,sq){
 }
 /* ---- 팀 전력 계산 ---- */
 function teamPower(team){
-  const F=FORMATIONS[team.formation]; const ps=F.map((s,i)=>({c:CARDS[team.slots[i]],pos:POS_GROUP[s[0]]||s[0],slot:s[0],a:effAttrs(CARDS[team.slots[i]],s[0])}));
+  const F=FORMATIONS[team.formation]; const ps=F.map((s,i)=>{ const c=ecard(team.slots[i],(team.enh||{})[team.slots[i]]||0); return {c,pos:POS_GROUP[s[0]]||s[0],slot:s[0],a:effAttrs(c,s[0])}; });
   const nats={}; ps.forEach(p=>nats[p.c.nat]=(nats[p.c.nat]||0)+1); const chem=Math.min(6,Object.values(nats).reduce((a,n)=>a+(n>=2?n-1:0),0));
   const cap=ps.some(p=>p.a.trait.cap)?2:0;
   const gk=ps.find(p=>p.pos==='GK'); const df=ps.filter(p=>p.pos==='DF'), mf=ps.filter(p=>p.pos==='MF'), fw=ps.filter(p=>p.pos==='FW');
@@ -108,7 +108,7 @@ function teamPower(team){
 let live=null;
 function startMatch(away,ctx){ // away: {name,formation,style,mental,slots}; ctx: {kind:'league'|'cup'|'friendly', wages, onEnd(result)}
   const sq=squadOf(); const w=ctx.wages||0;
-  const home={name:clubOf().name,formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots.slice()};
+  const home={name:clubOf().name,formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots.slice(),enh:Object.assign({},S.enh||{})};
   live={home,away,hp:teamPower(home),ap:teamPower(away),min:0,score:[0,0],events:[],ctx,wages:w,timer:null,speed:140};
   live.hp.form=0.93+Math.random()*0.14; live.ap.form=0.93+Math.random()*0.14; // 오늘의 컨디션 (±7%)
   const sw=STYLES[home.style].beats===away.style?1:STYLES[away.style].beats===home.style?-1:0; live.styleEdge=sw;
