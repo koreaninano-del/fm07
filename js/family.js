@@ -37,7 +37,7 @@ function famPublish(){
   if(!famOn()||!S) return; clearTimeout(famPubTimer);
   famPubTimer=setTimeout(async()=>{ try{
     const c=clubOf(); const sq=squadOf(); const ready=!squadReady();
-    await famDB().collection('clubs').doc(Account.uid).set({uid:Account.uid,id:Account.id,name:c.name,owner:S.name,rating:ready?squadRating(sq):0,ready,squad:{formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots},cards:Object.keys(S.cards).filter(id=>CARDS[id]),value:Object.keys(S.cards).reduce((t,id)=>t+(CARDS[id]?CARDS[id].price*S.cards[id]:0),0),money:S.money,cardN:cardCount(S),updated:Date.now()});
+    await famDB().collection('clubs').doc(Account.uid).set({uid:Account.uid,id:Account.id,name:c.name,owner:S.name,rating:ready?squadRating(sq):0,ready,squad:{formation:sq.formation,style:sq.style,mental:sq.mental,slots:sq.slots,enh:Object.fromEntries(sq.slots.filter(id=>id&&enhLv(id)).map(id=>[id,enhLv(id)]))},cards:Object.keys(S.cards).filter(id=>CARDS[id]&&!enhLocked(id)),value:Object.keys(S.cards).reduce((t,id)=>t+ownedValue(id),0),money:S.money,cardN:cardCount(S),updated:Date.now()});
     if(!Fam.clubs[Account.uid]){ await famLoad(); if(typeof renderHome==='function') renderHome(); }
   }catch(e){ console.warn('club publish',e); } },2000);
 }
@@ -74,7 +74,7 @@ function famOpponentTeam(uid){
   const ai=FAM_AI.find(a=>a.uid===uid);
   if(ai){ const t=buildClubTeam(ai.idx,2); t.name=ai.name; return t; }
   const c=Fam.clubs[uid]; if(!c||!c.ready||!c.squad||c.squad.slots.some(id=>!id||!CARDS[id])) return null;
-  return {name:c.name,formation:c.squad.formation,style:c.squad.style,mental:c.squad.mental,slots:c.squad.slots.slice()};
+  return {name:c.name,formation:c.squad.formation,style:c.squad.style,mental:c.squad.mental,slots:c.squad.slots.slice(),enh:c.squad.enh||{}};
 }
 /* 시즌 중간에 들어온 계정 지원: 다른 가족 클럽이 이미 있으면 처음 한 번 200,000원 + 기록 */
 function famWelcome(){
@@ -133,7 +133,7 @@ function renderFamTradeTab(){
 }
 function openFamTrade(uid){ ft={to:uid,offer:null,want:null}; renderFamTrade(); }
 function renderFamTrade(){
-  const c=Fam.clubs[ft.to]; const theirs=(c.cards||[]).map(id=>CARDS[id]).filter(Boolean).sort((a,b)=>b.price-a.price); const mine=myCards().sort((a,b)=>b.price-a.price);
+  const c=Fam.clubs[ft.to]; const theirs=(c.cards||[]).map(id=>CARDS[id]).filter(Boolean).sort((a,b)=>b.price-a.price); const mine=myCards().filter(c=>!enhLocked(c.id)).map(c=>CARDS[c.id]).sort((a,b)=>b.price-a.price);
   const pick=(cd,who,sel)=>`<div class="mini-card ${sel?'sel':''}" onclick="ft.${who}='${cd.id}';renderFamTrade()">${cardSVG(cd,96)}<div class="mc-name">${cd.name}</div><div class="mc-sub"><b>${cd.rating}</b> ${isPlayerCard(cd)?posStr(cd):''}</div><div class="mc-sub">${fmt(cd.price)}</div></div>`;
   const ok=ft.offer&&ft.want;
   openModal(`<div class="trade"><div class="trade-col"><h3>내 카드 (줄 카드)</h3><div class="card-grid small">${mine.map(x=>pick(x,'offer',ft.offer===x.id)).join('')}</div></div>
@@ -150,7 +150,7 @@ async function famPropose(){
 }
 async function famAccept(id){
   if(!econOK()) return; const t=Fam.trades.find(x=>x._id===id); if(!t) return;
-  if(!S.cards[t.want]) return toast('내게 그 카드가 이제 없어요');
+  if(!S.cards[t.want]) return toast('내게 그 카드가 이제 없어요'); if(enhLocked(t.want)) return toast('강화한 카드는 교환할 수 없어요');
   try{ await famDB().collection('trades').doc(id).update({status:'accepted',acceptedAt:Date.now()});
     removeCard(S,t.want); addCard(S,t.offer); S.stats.trades++; logIt(`${t.fromName}과(와) 교환: ${CARDS[t.want].name} → ${CARDS[t.offer].name}`); refreshHUD(); toast(`${CARDS[t.offer].name} 카드를 받았어요`); openTradeLobby('fam'); }
   catch(e){ toast('수락 실패: '+e.message); }
