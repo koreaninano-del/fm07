@@ -260,6 +260,20 @@ input:focus,select:focus{outline:none;border-color:#fff}
 .p-face{width:36px;height:36px;border-radius:50%;background:var(--raised)}
 #toast{position:fixed;left:50%;top:64px;transform:translateX(-50%) translateY(-10px);background:#fff;color:#000;padding:8px 16px;border-radius:999px;font-weight:500;opacity:0;transition:.2s;z-index:60;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%)}
+.hometabs{width:min(1208px,100% - 32px);margin:10px auto 0;display:flex;gap:4px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;z-index:5;background:var(--ground)}
+.htab{position:relative;height:48px;padding:0 22px;background:transparent;border:0;border-bottom:3px solid transparent;color:var(--faint);font-weight:700;font-size:17px;cursor:pointer;font-family:inherit}
+.htab.on{color:var(--text);border-bottom-color:var(--accent)}.hdot{display:none;position:absolute;top:12px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--accent)}.hdot.on{display:block}
+.main{display:block}.pane{display:none;gap:var(--gap);align-items:start}.main[data-tab=club] .pane-club,.main[data-tab=league] .pane-league,.main[data-tab=cards] .pane-cards{display:grid}
+.pane-club{grid-template-columns:3fr 2fr}.pane-cards{grid-template-columns:3fr 2fr}.pane-league{grid-template-columns:1fr}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap}.stab{height:38px;padding:0 18px;border-radius:999px;border:1px solid var(--control);background:transparent;color:var(--muted);font-weight:600;font-size:15px;cursor:pointer;font-family:inherit}.stab.on{background:#fff;color:#000;border-color:#fff}
+.pane-league .sub{display:none}.pane-league[data-sub=fam] .sub-fam,.pane-league[data-sub=ai] .sub-ai,.pane-league[data-sub=cup] .sub-cup{display:block}
+.qlist{display:flex;flex-direction:column}.qrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--rule)}.qrow:first-child{border-top:0;padding-top:0}.qrow .ell{min-width:0}.qrow b{font-size:16px}
+.qlinks{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qlinks .btn{width:100%}
+.enh{display:flex;gap:24px;align-items:flex-start}.enh-card{flex:none;transition:transform .5s}.enh-card.spin{transform:rotateY(360deg) scale(1.05)}.enh-card.ok{filter:drop-shadow(0 0 18px rgba(198,242,78,.7))}.enh-card.fail{filter:grayscale(.6)}
+.enh-info{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}.enh-info em{font-style:normal;color:var(--accent)}.enh-stars{display:flex;align-items:center;gap:6px}.enh-stars i{width:18px;height:18px;border-radius:50%;border:2px solid var(--control)}.enh-stars i.on{background:var(--accent);border-color:var(--accent)}.enh-stars span{margin-left:6px;color:var(--muted);font-weight:600}
+.enh-res{font-weight:800;font-size:18px;padding:10px 12px;border-radius:10px}.enh-res.ok{background:rgba(198,242,78,.15);color:var(--accent)}.enh-res.fail{background:rgba(229,72,77,.15);color:var(--negative)}
+.enh-tag{display:inline-block;padding:0 6px;border-radius:999px;background:var(--accent);color:#000!important;font-size:12px;font-weight:800;line-height:18px}.btn.big{height:48px;font-size:16px;width:100%}
+@media (max-width:980px){.pane-club,.pane-cards{grid-template-columns:1fr}.htab{flex:1;padding:0 8px}.enh{flex-direction:column;align-items:center}.enh-info{width:100%}.enh-card svg{max-width:200px;height:auto}}
 @media (max-width:980px){.main{grid-template-columns:1fr}.top{height:auto;padding:8px 0}.brand span{white-space:nowrap}.sync{display:none}.icon-btn{padding:0 10px}.mslot{width:66px}.mslot img{width:38px;height:50px}.mslot span{font-size:11px;line-height:14px}.pslot{width:60px}.pslot .pimg{width:40px}.pslot .pname{font-size:11px}.mini-pitch{height:400px}.pitch{height:460px}.sec{padding:16px}.navlinks,.stats{display:none}.shop,.shop2,.trade,.squad,.match-body{grid-template-columns:1fr}.ltable{font-size:13px}.ltable col.c-rank{width:22px}.ltable col.c-n{width:25px}.ltable col.c-gd{width:34px}.ltable col.c-pts{width:36px}.ltable col.c-money{width:62px}.ltable col.c-act{width:0}.ltable .act{display:none}.ltable td,.ltable th{padding-left:3px;padding-right:3px}.shop-cats{flex-direction:row;flex-wrap:wrap;order:0}.cat{height:38px;flex:1 1 18%;padding:0 8px;justify-content:center}.cat span{display:none}.cat em.full{display:none}.cat em.short{display:inline}.shop-buy{order:1}.shop-list{order:2;max-height:none}.pack-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}.ltable th{font-size:11px}.lineup{display:none}.pack-list{max-height:220px}.mini-pitch{height:380px}.binder-book{grid-template-columns:1fr}.detail{flex-direction:column;align-items:center;gap:12px}.detail-info{width:100%}.detail-card{max-width:100%}.detail-card svg{max-width:220px;height:auto}.modal{padding:16px}.attrs{grid-template-columns:1fr}.reveal-card svg{max-width:min(230px,70vw);height:auto}}
 </style>
 </head>
@@ -267,28 +281,39 @@ input:focus,select:focus{outline:none;border-color:#fff}
 <div id="app">
   <div class="top">
     <div class="brand" id="brand"></div>
-    <nav class="navlinks"><a onclick="renderHome();window.scrollTo(0,0)">내 클럽</a><a onclick="openShop()">카드팩</a><a onclick="openBinder()">카드북</a><a onclick="openTradeLobby()">트레이드</a><a onclick="openBank()">용돈</a></nav>
+    <nav class="navlinks"><a onclick="setHomeTab('club')">내 클럽</a><a onclick="setHomeTab('league')">리그</a><a onclick="openShop()">카드팩</a><a onclick="openBinder()">카드북</a><a onclick="openTradeLobby()">트레이드</a><a onclick="openBank()">용돈</a></nav>
     <div class="stats"><div class="stat">잔액 <b class="num" id="hud-money">0원</b></div><div class="stat">카드 <b class="num" id="hud-cards">0</b></div></div>
     <div class="icons"><div id="sync" class="sync"></div><button class="icon-btn" onclick="openAccount()"><b id="hud-name">나</b></button><button class="icon-btn" onclick="openLog()">기록</button><button class="icon-btn" onclick="openMenu()">메뉴</button></div>
   </div>
-  <div class="main">
-    <div class="col">
+  <div class="hometabs" id="hometabs"><button class="htab" data-t="club" onclick="setHomeTab('club')">클럽</button><button class="htab" data-t="league" onclick="setHomeTab('league')">리그<span class="hdot" id="hdot-league"></span></button><button class="htab" data-t="cards" onclick="setHomeTab('cards')">카드<span class="hdot" id="hdot-cards"></span></button></div>
+  <div class="main" id="home-main" data-tab="club">
+    <div class="pane pane-club">
       <div class="sec club" id="club-panel"></div>
-      <div class="sec"><h2>패밀리 리그</h2><div id="league-panel"></div></div>
-      <div class="sec"><h2>연습 리그 <span class="more" onclick="openClubHistory()">시즌 기록</span></h2><div id="ai-league-panel"></div></div>
-      <div class="sec"><h2>FA컵 · 친선</h2><div id="cup-panel"></div></div>
+      <div class="col"><div class="sec"><h2>오늘의 경기</h2><div id="club-quick"></div></div>
+        <div class="sec"><h2>바로가기</h2><div class="qlinks"><button class="btn" onclick="openBattleLobby()">스쿼드 편집</button><button class="btn" onclick="openEnhanceList()">카드 강화</button><button class="btn" onclick="openClubHistory()">시즌 기록</button><button class="btn" onclick="openTradeLobby()">트레이드</button></div></div></div>
     </div>
-    <div class="col">
-      <div class="sec"><h2>추천 팩 <span class="more" onclick="openShop()">카드팩 상점</span></h2><div class="packs" id="home-packs"></div></div>
-      <div class="sec"><h2>최근 뽑은 카드 <span class="more" onclick="openBinder()">카드북</span></h2><div class="recent" id="home-recent"></div></div>
-      <div class="sec"><h2>내 컬렉션</h2><div class="summary" id="home-summary"></div></div>
-      <div class="tiles">
-        <div class="tile" onclick="openShop()"><div><div class="tt">카드팩 상점</div><div class="ts" id="tile-shop"></div></div></div>
-        <div class="tile" onclick="openBinder()"><div><div class="tt">카드북</div><div class="ts" id="tile-book"></div></div></div>
-        <div class="tile" onclick="openTradeLobby()"><div><div class="tt">트레이드</div><div class="ts">가족 · 친구와 교환</div></div></div>
-        <div class="tile" onclick="openBank()"><div><div class="tt">용돈 상자</div><div class="ts" id="tile-bank"></div></div></div>
-        <div class="tile" onclick="openRandomBox()"><div><div class="tt">랜덤박스</div><div class="ts" id="tile-box"></div></div></div>
-        <div class="tile" id="tile-admin" style="display:none" onclick="openAdmin()"><div><div class="tt">관리자</div><div class="ts">지급 · 시세 · 강퇴</div></div></div>
+    <div class="pane pane-league" id="pane-league" data-sub="fam">
+      <div class="subtabs"><button class="stab" data-s="fam" onclick="setHomeTab('league','fam')">패밀리 리그</button><button class="stab" data-s="ai" onclick="setHomeTab('league','ai')">연습 리그</button><button class="stab" data-s="cup" onclick="setHomeTab('league','cup')">FA컵 · 친선</button></div>
+      <div class="sec sub sub-fam"><h2>패밀리 리그</h2><div id="league-panel"></div></div>
+      <div class="sec sub sub-ai"><h2>연습 리그 <span class="more" onclick="openClubHistory()">시즌 기록</span></h2><div id="ai-league-panel"></div></div>
+      <div class="sec sub sub-cup"><h2>FA컵 · 친선</h2><div id="cup-panel"></div></div>
+    </div>
+    <div class="pane pane-cards">
+      <div class="col">
+        <div class="sec"><h2>추천 팩 <span class="more" onclick="openShop()">카드팩 상점</span></h2><div class="packs" id="home-packs"></div></div>
+        <div class="sec"><h2>최근 뽑은 카드 <span class="more" onclick="openBinder()">카드북</span></h2><div class="recent" id="home-recent"></div></div>
+      </div>
+      <div class="col">
+        <div class="sec"><h2>내 컬렉션</h2><div class="summary" id="home-summary"></div></div>
+        <div class="tiles">
+          <div class="tile" onclick="openShop()"><div><div class="tt">카드팩 상점</div><div class="ts" id="tile-shop"></div></div></div>
+          <div class="tile" onclick="openBinder()"><div><div class="tt">카드북</div><div class="ts" id="tile-book"></div></div></div>
+          <div class="tile" onclick="openEnhanceList()"><div><div class="tt">카드 강화</div><div class="ts" id="tile-enh"></div></div></div>
+          <div class="tile" onclick="openTradeLobby()"><div><div class="tt">트레이드</div><div class="ts">가족 · 친구와 교환</div></div></div>
+          <div class="tile" onclick="openBank()"><div><div class="tt">용돈 상자</div><div class="ts" id="tile-bank"></div></div></div>
+          <div class="tile" onclick="openRandomBox()"><div><div class="tt">랜덤박스</div><div class="ts" id="tile-box"></div></div></div>
+          <div class="tile" id="tile-admin" style="display:none" onclick="openAdmin()"><div><div class="tt">관리자</div><div class="ts">지급 · 시세 · 강퇴</div></div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -299,24 +324,24 @@ input:focus,select:focus{outline:none;border-color:#fff}
 <script>
 const MARK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16l-1.5 2L20 7l-1.5 2L20 11l-1.5 2L20 15l-1.5 2L20 19l-1.5 2H4l1.5-2L4 17l1.5-2L4 13l1.5-2L4 9l1.5-2L4 5z" fill="#c6f24e"/><circle cx="12" cy="12" r="4" fill="#000"/></svg>';
 </script>
-<script src="firebase-config.js?v=202611071341"></script>
-<script src="js/img_data.js?v=202611071341"></script>
-<script src="js/img_data2.js?v=202611071341"></script>
-<script src="js/wc_data.js?v=202611071341"></script>
-<script src="js/wc1418_data.js?v=202611071341"></script>
-<script src="js/editions.js?v=202611071341"></script>
-<script src="js/icon_data.js?v=202611071341"></script>
-<script src="js/pos_data.js?v=202611071341"></script>
-<script src="js/data.js?v=202611071341"></script>
-<script src="js/cut_data.js?v=202611071341"></script>
-<script src="js/card.js?v=202611071341"></script>
-<script src="js/match.js?v=202611071341"></script>
-<script src="js/league.js?v=202611071341"></script>
-<script src="js/family.js?v=202611071341"></script>
-<script src="js/extras.js?v=202611071341"></script>
-<script src="js/home.js?v=202611071341"></script>
-<script src="js/auth.js?v=202611071341"></script>
-<script src="js/game.js?v=202611071341"></script>
+<script src="firebase-config.js?v=202611082036"></script>
+<script src="js/img_data.js?v=202611082036"></script>
+<script src="js/img_data2.js?v=202611082036"></script>
+<script src="js/wc_data.js?v=202611082036"></script>
+<script src="js/wc1418_data.js?v=202611082036"></script>
+<script src="js/editions.js?v=202611082036"></script>
+<script src="js/icon_data.js?v=202611082036"></script>
+<script src="js/pos_data.js?v=202611082036"></script>
+<script src="js/data.js?v=202611082036"></script>
+<script src="js/cut_data.js?v=202611082036"></script>
+<script src="js/card.js?v=202611082036"></script>
+<script src="js/match.js?v=202611082036"></script>
+<script src="js/league.js?v=202611082036"></script>
+<script src="js/family.js?v=202611082036"></script>
+<script src="js/extras.js?v=202611082036"></script>
+<script src="js/home.js?v=202611082036"></script>
+<script src="js/auth.js?v=202611082036"></script>
+<script src="js/game.js?v=202611082036"></script>
 
 </body>
 </html>
