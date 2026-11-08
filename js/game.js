@@ -17,7 +17,7 @@ function newProfile(name){
   return p;
 }
 function addCard(p,id,n){ p.cards[id]=(p.cards[id]||0)+(n||1); }
-function removeCard(p,id,n){ p.cards[id]=(p.cards[id]||0)-(n||1); if(p.cards[id]<=0) delete p.cards[id]; }
+function removeCard(p,id,n){ p.cards[id]=(p.cards[id]||0)-(n||1); if(p.cards[id]<=0){ delete p.cards[id]; if(p.enh) delete p.enh[id]; } }
 function cardCount(p){ return Object.values(p.cards).reduce((a,b)=>a+b,0); }
 function logIt(m){ S.log.unshift({t:todayStr(),m}); if(S.log.length>200) S.log.length=200; }
 function refreshHUD(){
@@ -150,7 +150,7 @@ function showAll(){
 }
 /* ====== 카드북 ====== */
 let bk={page:0,filter:'',set:'',sort:'rating',dir:-1,sel:null};
-function myCards(){ return Object.keys(S.cards).map(id=>CARDS[id]).filter(Boolean); }
+function myCards(){ return Object.keys(S.cards).filter(id=>CARDS[id]).map(id=>myCard(id)); }
 function openBinder(){ bk.page=0; bk.sel=null; renderBinder(); }
 function setOptions(cur){ if(!PACKS.length) buildCatalog(); return PACK_CATS.map(c=>`<optgroup label="${c.n}">${SETS.filter(s=>s.cat===c.k).map(s=>`<option value="${s.id}" ${cur===s.id?'selected':''}>${s.short}</option>`).join('')}</optgroup>`).join(''); }
 function binderList(){
@@ -164,8 +164,8 @@ function binderList(){
 function squadIds(){ try{ return new Set(squadOf().slots.filter(Boolean)); }catch(e){ return new Set(); } }
 const sellPrice=c=>Math.round(c.price*0.6/100)*100;
 function selTotal(){ let n=0,v=0; Object.entries(bk.sel||{}).forEach(([id,q])=>{ n+=q; v+=sellPrice(CARDS[id])*q; }); return {n,v}; }
-function selMax(id){ return S.cards[id]-(squadIds().has(id)?1:0); }
-function binderTap(id){ if(!bk.sel) return cardDetail(id,'renderBinder'); const m=selMax(id); if(m<=0) return toast('스쿼드에 있는 카드라 마지막 1장은 팔 수 없어요'); if(bk.sel[id]) delete bk.sel[id]; else bk.sel[id]=m; renderBinder(); }
+function selMax(id){ return S.cards[id]-(squadIds().has(id)||enhLv(id)?1:0); }
+function binderTap(id){ if(!bk.sel) return cardDetail(id,'renderBinder'); const m=selMax(id); if(m<=0) return toast(enhLv(id)?'강화한 카드는 카드 화면에서 따로 팔아 주세요':'스쿼드에 있는 카드라 마지막 1장은 팔 수 없어요'); if(bk.sel[id]) delete bk.sel[id]; else bk.sel[id]=m; renderBinder(); }
 function binderSelect(mode){ bk.sel=bk.sel||{}; const list=binderList(); if(mode==='none') bk.sel={}; else list.forEach(c=>{ const m=mode==='dup'?Math.min(selMax(c.id),S.cards[c.id]-1):selMax(c.id); if(m>0) bk.sel[c.id]=m; else delete bk.sel[c.id]; }); renderBinder(); }
 function sellSelected(){ if(!econOK()) return; const t=selTotal(); if(!t.n) return toast('선택한 카드가 없어요'); if(!confirm(`${t.n}장을 ${fmt(t.v)}에 팔까요?`)) return;
   Object.entries(bk.sel).forEach(([id,q])=>{ q=Math.min(q,selMax(id)); if(q>0){ removeCard(S,id,q); S.money+=sellPrice(CARDS[id])*q; } });
@@ -175,7 +175,7 @@ function renderBinder(){
   const pg=cards.slice(bk.page*per,bk.page*per+per); const sel=bk.sel||{};
   const slot=c=>c?`<div class="slot ${sel[c.id]?'picked':''}" onclick="binderTap('${c.id}')">${cardSVG(c,110)}<div class="cnt">×${S.cards[c.id]}</div>${sel[c.id]?`<div class="pick">${sel[c.id]}장</div>`:''}<div class="sn">${c.name}</div><div class="sv">${c.rating} · ${fmt(c.price)}</div></div>`:'<div class="slot empty"></div>';
   const body=bk.sel?`<div class="page sel-grid">${pg.map(slot).join('')}</div>`:`<div class="binder-book"><div class="page">${Array.from({length:6},(_,i)=>slot(pg[i])).join('')}</div><div class="page">${Array.from({length:6},(_,i)=>slot(pg[i+6])).join('')}</div></div>`;
-  const totalVal=myCards().reduce((a,c)=>a+c.price*S.cards[c.id],0); const t=selTotal();
+  const totalVal=myCards().reduce((a,c)=>a+ownedValue(c.id),0); const t=selTotal();
   openModal(`<div class="binder"><div class="binder-head"><div><h2>카드북</h2><div class="muted">${cardCount(S)}장 · ${myCards().length}종 · 총 시세 ${fmt(totalVal)}</div></div>
     <div class="binder-tools"><input id="bk-search" placeholder="이름 · 국가 검색" value="${esc(bk.filter)}" oninput="bk.filter=this.value;bk.page=0;renderBinder();const e=document.getElementById('bk-search');e.focus();e.setSelectionRange(e.value.length,e.value.length)">
     <select onchange="bk.set=this.value;bk.page=0;renderBinder()"><option value="">모든 팩</option>${setOptions(bk.set)}</select>
@@ -195,13 +195,13 @@ function openCollection(){
     <div class="row right"><button class="btn" onclick="renderBinder()">카드북으로</button></div></div>`,'wide');
 }
 function cardDetail(id,back){
-  const c=CARDS[id]; const sell=Math.round(c.price*0.6/100)*100; const set=SETS.find(s=>s.id===c.set);
+  const c=S.cards[id]?myCard(id):CARDS[id]; const sell=sellNext(id); const set=SETS.find(s=>s.id===c.set); const lv=c.enh||0;
   openModal(`<div class="detail"><div class="detail-card rar-${c.rar}">${cardSVG(c,240)}</div><div class="detail-info"><div class="muted">${set.name}</div><h2>${c.name}</h2>
     <div class="muted">${String(c.no).padStart(3,'0')}/${c.total} · <span style="color:${RARITY[c.rar].color};font-weight:bold">${RARITY[c.rar].n}</span></div>
-    <div class="stat-row"><span>국가</span><b>${NATIONS[c.nat].n}</b></div><div class="stat-row"><span>포지션</span><b>${c.pp?`${c.pp[0]} <span class="muted small">${POS_KO[c.pp[0]]}</span>${c.pp.length>1?` · 서브 ${c.pp.slice(1).join(', ')}`:''}`:POS_KO[c.pos]}</b></div><div class="stat-row"><span>능력치</span><b>${c.rating}</b></div>${c.dob?`<div class="stat-row"><span>생년월일</span><b>${c.dob.split('-').reverse().join('.')}</b></div><div class="stat-row"><span>키 / 몸무게</span><b>${c.h.replace(',','.')} m / ${c.w} kg</b></div>`:''}${c.kind==='player'||!c.kind?attrHTML(c):''}${c.edition?`<div class="stat-row"><span>에디션</span><b>${EDITION_INFO[c.edition].n}</b></div>`:''}${c.award?`<div class="stat-row"><span>수상</span><b>${c.award}</b></div>`:''}${c.club?`<div class="stat-row"><span>소속 클럽</span><b style="font-size:12px">${c.club}</b></div>`:''}<div class="stat-row"><span>보유</span><b>${S.cards[c.id]||0}장</b></div><div class="stat-row"><span>시세</span><b>${fmt(c.price)}</b></div>
-    <div class="row"><button class="btn" onclick="${back}()">돌아가기</button>${S.cards[c.id]?`<button class="btn primary" onclick="sellCard('${c.id}','${back}')">상인에게 판매 (${fmt(sell)})</button>`:''}</div></div></div>`);
+    <div class="stat-row"><span>국가</span><b>${NATIONS[c.nat].n}</b></div><div class="stat-row"><span>포지션</span><b>${c.pp?`${c.pp[0]} <span class="muted small">${POS_KO[c.pp[0]]}</span>${c.pp.length>1?` · 서브 ${c.pp.slice(1).join(', ')}`:''}`:POS_KO[c.pos]}</b></div><div class="stat-row"><span>능력치</span><b>${c.rating}${lv?` <span class="enh-tag">+${lv} 강화</span>`:''}</b></div>${c.dob?`<div class="stat-row"><span>생년월일</span><b>${c.dob.split('-').reverse().join('.')}</b></div><div class="stat-row"><span>키 / 몸무게</span><b>${c.h.replace(',','.')} m / ${c.w} kg</b></div>`:''}${c.kind==='player'||!c.kind?attrHTML(c):''}${c.edition?`<div class="stat-row"><span>에디션</span><b>${EDITION_INFO[c.edition].n}</b></div>`:''}${c.award?`<div class="stat-row"><span>수상</span><b>${c.award}</b></div>`:''}${c.club?`<div class="stat-row"><span>소속 클럽</span><b style="font-size:12px">${c.club}</b></div>`:''}<div class="stat-row"><span>보유</span><b>${S.cards[c.id]||0}장</b></div><div class="stat-row"><span>시세</span><b>${fmt(c.price)}</b></div>
+    <div class="row"><button class="btn" onclick="${back}()">돌아가기</button>${S.cards[c.id]&&isPlayerCard(c)?`<button class="btn primary" onclick="openEnhance('${c.id}','${back}')">${lv>=ENH_MAX?'강화 완료':'강화하기'}</button>`:''}${S.cards[c.id]?`<button class="btn" onclick="sellCard('${c.id}','${back}')">판매 (${fmt(sell)})</button>`:''}</div>${lv&&S.cards[c.id]<=1?'<div class="muted small">강화한 카드는 트레이드할 수 없어요</div>':''}</div></div>`);
 }
-function sellCard(id,back){ if(!econOK()) return; const c=CARDS[id]; if(!S.cards[id]) return; if(S.cards[id]<=1&&squadIds().has(id)) return toast('스쿼드에 있는 카드예요. 스쿼드에서 빼고 팔아 주세요'); const sell=Math.round(c.price*0.6/100)*100; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
+function sellCard(id,back){ if(!econOK()) return; const c=CARDS[id]; if(!S.cards[id]) return; if(S.cards[id]<=1&&squadIds().has(id)) return toast('스쿼드에 있는 카드예요. 스쿼드에서 빼고 팔아 주세요'); const sell=sellNext(id); if(S.cards[id]<=1&&enhLv(id)&&!confirm(`+${enhLv(id)} 강화한 카드예요. ${fmt(sell)}에 팔까요?`)) return; removeCard(S,id); S.money+=sell; logIt(`${c.name} 카드 판매 (+${fmt(sell)})`); refreshHUD(); toast(`${c.name} 카드를 ${fmt(sell)}에 팔았어요`); if(S.cards[id]) cardDetail(id,back); else window[back](); }
 /* ====== 용돈 ====== */
 function openBank(){
   const can=S.lastAllowance!==todayStr();
@@ -223,7 +223,7 @@ function openTradeLobby(tab){ tab=tab||(typeof famOn==='function'&&famOn()?'fam'
   <div class="row right"><button class="btn" onclick="closeModal()">닫기</button></div>`); }
 function openTrade(fid){ tr={friend:FRIENDS.find(f=>f.id===fid),mine:null,theirs:null}; renderTrade(); }
 function renderTrade(msg){
-  const f=tr.friend; const theirs=friendCards(f).map(id=>CARDS[id]); const mine=myCards();
+  const f=tr.friend; const theirs=friendCards(f).map(id=>CARDS[id]); const mine=myCards().filter(c=>!enhLocked(c.id)).map(c=>CARDS[c.id]);
   const mv=tr.mine?CARDS[tr.mine].price:0, tv=tr.theirs?friendValue(f,CARDS[tr.theirs]):0;
   const ok=tr.mine&&tr.theirs&&friendValue(f,CARDS[tr.mine])>=tv*0.85;
   const pick=(c,who,sel,cnt)=>`<div class="mini-card ${sel?'sel':''}" onclick="tr.${who}='${c.id}';renderTrade()">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub"><b>${c.rating}</b> ${isPlayerCard(c)?posStr(c):''}</div><div class="mc-sub">${fmt(c.price)}${cnt?` · ×${cnt}`:''}${f.likes.includes(c.nat)&&who==='mine'?' · 선호':''}</div></div>`;
@@ -269,3 +269,42 @@ async function bootstrap(){
   if(p) startWith(p); else openAuth(localStorage.getItem(LAST_KEY)?'login':'join');
 }
 window.addEventListener('DOMContentLoaded',bootstrap);
+/* ====== 카드 강화 (돈 + 확률, 실패 시 비용만 사라짐) ====== */
+const ENH_MAX=5, ENH_RATE=[0.9,0.75,0.6,0.45,0.3], ENH_COST=[0.15,0.2,0.3,0.4,0.5], ENH_VAL=0.15;
+const _ecache={};
+function enhLv(id){ return (S&&S.enh&&S.enh[id])||0; }
+function enhLocked(id){ return enhLv(id)>0&&(S.cards[id]||0)<=1; } // 강화된 마지막 1장은 트레이드 불가
+function enhPrice(p,lv){ return Math.round(p*(1+ENH_VAL*lv)/100)*100; }
+function ecard(id,lv){ const b=CARDS[id]; if(!b||!lv) return b; const k=id+'#'+lv; if(_ecache[k]) return _ecache[k];
+  const a=attrs(b); const na={trait:a.trait}; Object.keys(ATTR_KO).forEach(x=>na[x]=Math.min(99,a[x]+lv));
+  return _ecache[k]=Object.assign({},b,{rating:b.rating+lv,baseRating:b.rating,basePrice:b.price,price:enhPrice(b.price,lv),enh:lv,_a:na}); }
+function myCard(id){ return ecard(id,enhLv(id)); }
+function ownedValue(id){ const b=CARDS[id]; const n=(S.cards[id]||0); if(!b||!n) return 0; return b.price*(n-1)+myCard(id).price; }
+function sellNext(id){ const n=S.cards[id]||0; return Math.round((n<=1?myCard(id):CARDS[id]).price*0.6/100)*100; } // 중복은 기본 시세, 마지막 1장은 강화 시세
+function enhCost(id){ const lv=enhLv(id), c=CARDS[id]; const byRating=5000*(lv+1)*Math.pow(1.12,c.rating-80); return Math.max(2000,Math.round(Math.max(c.price*ENH_COST[lv],byRating)/500)*500); } // 시세 또는 능력치 기준 중 큰 값
+let enhBusy=false;
+function openEnhance(id,back,res){
+  const b=CARDS[id]; if(!b||!S.cards[id]) return; const lv=enhLv(id); const cur=myCard(id); const nx=lv<ENH_MAX?ecard(id,lv+1):null;
+  const cost=nx?enhCost(id):0; const rate=nx?ENH_RATE[lv]:0;
+  const stars=Array.from({length:ENH_MAX},(_,i)=>`<i class="${i<lv?'on':''}"></i>`).join('');
+  openModal(`<div class="enh"><div class="enh-card ${res||''}">${cardSVG(cur,220)}</div><div class="enh-info"><h2>${b.name} 강화</h2><div class="enh-stars">${stars}<span>+${lv} / +${ENH_MAX}</span></div>
+    ${res==='ok'?`<div class="enh-res ok">강화 성공! +${lv}</div>`:res==='fail'?`<div class="enh-res fail">강화 실패… 비용만 사라졌어요</div>`:''}
+    ${nx?`<div class="kv"><span>능력치</span><b>${cur.rating} → <em>${nx.rating}</em></b></div><div class="kv"><span>시세</span><b>${fmt(cur.price)} → <em>${fmt(nx.price)}</em></b></div>
+    <div class="kv"><span>성공 확률</span><b>${Math.round(rate*100)}%</b></div><div class="kv"><span>강화 비용</span><b>${fmt(cost)}</b></div><div class="kv"><span>내 잔액</span><b class="${S.money<cost?'neg':''}">${fmt(S.money)}</b></div>
+    <div class="muted small">실패해도 강화 단계는 내려가지 않아요. 비용만 사라져요. 급여는 강화 전 능력치 기준이에요.</div>
+    <div class="row"><button class="btn primary big" ${S.money<cost?'disabled':''} onclick="doEnhance('${id}','${back}')">강화하기 (${fmt(cost)})</button></div>`:`<div class="enh-res ok">최고 단계(+${ENH_MAX})예요!</div>`}
+    <div class="row"><button class="btn" onclick="cardDetail('${id}','${back}')">카드 정보</button><button class="btn" onclick="${back}()">닫기</button></div></div></div>`);
+}
+function doEnhance(id,back){
+  if(enhBusy||!econOK()) return; const lv=enhLv(id); if(lv>=ENH_MAX||!S.cards[id]) return; const cost=enhCost(id); if(S.money<cost) return toast('돈이 부족해요');
+  enhBusy=true; S.money-=cost; S.enh=S.enh||{}; const ok=Math.random()<ENH_RATE[lv]; const nm=CARDS[id].name;
+  if(ok){ S.enh[id]=lv+1; logIt(`${nm} 강화 성공 +${lv+1} (-${fmt(cost)})`); } else logIt(`${nm} +${lv+1} 강화 실패 (-${fmt(cost)})`);
+  save(); refreshHUD(); setTimeout(()=>{ enhBusy=false; openEnhance(id,back,ok?'ok':'fail'); },500);
+  const el=document.querySelector('.enh-card'); if(el) el.className='enh-card spin';
+}
+function openEnhanceList(){
+  const list=myCards().filter(isPlayerCard).sort((a,b)=>(b.enh||0)-(a.enh||0)||b.rating-a.rating); const sq=squadIds();
+  openModal(`<div class="binder"><div class="binder-head"><div><h2>카드 강화</h2><div class="muted">선수 카드를 골라 +${ENH_MAX}까지 강화해요 · 성공 확률 ${ENH_RATE.map(r=>Math.round(r*100)+'%').join(' → ')}</div></div></div>
+    <div class="card-grid small" style="max-height:560px">${list.map(c=>`<div class="mini-card" onclick="openEnhance('${c.id}','openEnhanceList')">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub"><b>${c.rating}</b>${c.enh?` <span class="enh-tag">+${c.enh}</span>`:''}${sq.has(c.id)?' · 선발':''}</div></div>`).join('')||'<div class="muted">선수 카드가 없어요</div>'}</div>
+    <div class="row right"><button class="btn" onclick="closeModal()">닫기</button></div></div>`,'wide');
+}
