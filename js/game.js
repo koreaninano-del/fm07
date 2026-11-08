@@ -71,7 +71,7 @@ function buildCatalog(){
     vp('VKOR','대한민국 팩 (2014·2018·2026 한국 선수)','대한민국',POOL.kor,()=>[...Array(6)].map((_,i)=>byRar(POOL.kor,i===5?'R':'C')),['#d6001c','#0b2a6b'],'국가 팩'),
   ].filter(p=>p.cards.length);
   const evOf=p=>{ let t=0; const N=300; for(let i=0;i<N;i++) t+=pullPack(p).reduce((a,c)=>a+c.price,0); return t/N; };
-  const ratio=ICON.price/evOf(ICON);
+  const ICON_UP=1.6; if(ICON._p0==null) ICON._p0=ICON.price; const ratio=ICON._p0/evOf(ICON)*ICON_UP; ICON.price=Math.ceil(ICON._p0*ICON_UP/5000)*5000; // 아이콘 팩 가격 1.6배
   V.forEach(p=>{ p.ev=Math.round(evOf(p)); p.price=Math.ceil((p.cat==='icon'?p.ev*ratio:p.ev*1.15)/5000)*5000; p.year=0; });
   const catOf=s=>s.id==='ICON'?'icon':s.year===2026?'wc26':s.year===2018?'wc18':s.year===2014?'wc14':'special';
   const subOf=s=>s.id==='ICON'?'아이콘 팩':s.group?'조별 팩':/XI/.test(s.id)?'베스트 XI':s.id==='WC26SPC'||s.id==='WC26HIS'?'스페셜 · 히스토리':'토너먼트 에디션';
@@ -173,7 +173,7 @@ function sellSelected(){ if(!econOK()) return; const t=selTotal(); if(!t.n) retu
 function renderBinder(){
   const cards=binderList(); const per=bk.sel?24:12, pages=Math.max(1,Math.ceil(cards.length/per)); bk.page=Math.min(bk.page,pages-1);
   const pg=cards.slice(bk.page*per,bk.page*per+per); const sel=bk.sel||{};
-  const slot=c=>c?`<div class="slot ${sel[c.id]?'picked':''}" onclick="binderTap('${c.id}')">${cardSVG(c,110)}<div class="cnt">×${S.cards[c.id]}</div>${sel[c.id]?`<div class="pick">${sel[c.id]}장</div>`:''}<div class="sn">${c.name}</div><div class="sv">${c.rating} · ${fmt(c.price)}</div></div>`:'<div class="slot empty"></div>';
+  const slot=c=>c?`<div class="slot ${sel[c.id]?'picked':''}" onclick="binderTap('${c.id}')"><div class="cimg">${cardSVG(c,110)}</div><div class="cnt">×${S.cards[c.id]}</div>${sel[c.id]?`<div class="pick">${sel[c.id]}장</div>`:''}<div class="sn">${c.name}</div><div class="sv">${c.enh?`<span class="enh-tag">+${c.enh}</span> `:''}${c.rating} · ${fmt(c.price)}</div></div>`:'<div class="slot empty"></div>';
   const body=bk.sel?`<div class="page sel-grid">${pg.map(slot).join('')}</div>`:`<div class="binder-book"><div class="page">${Array.from({length:6},(_,i)=>slot(pg[i])).join('')}</div><div class="page">${Array.from({length:6},(_,i)=>slot(pg[i+6])).join('')}</div></div>`;
   const totalVal=myCards().reduce((a,c)=>a+ownedValue(c.id),0); const t=selTotal();
   openModal(`<div class="binder"><div class="binder-head"><div><h2>카드북</h2><div class="muted">${cardCount(S)}장 · ${myCards().length}종 · 총 시세 ${fmt(totalVal)}</div></div>
@@ -270,14 +270,14 @@ async function bootstrap(){
 }
 window.addEventListener('DOMContentLoaded',bootstrap);
 /* ====== 카드 강화 (돈 + 확률, 실패 시 비용만 사라짐) ====== */
-const ENH_MAX=5, ENH_RATE=[0.9,0.75,0.6,0.45,0.3], ENH_COST=[0.15,0.2,0.3,0.4,0.5], ENH_VAL=0.15;
+const ENH_MAX=10, ENH_RATE=[0.5,0.4,0.3,0.2,0.1,0.05,0.05,0.05,0.05,0.05], ENH_COST=[0.15,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1], ENH_VAL=0.15;
 const _ecache={};
 function enhLv(id){ return (S&&S.enh&&S.enh[id])||0; }
 function enhLocked(id){ return enhLv(id)>0&&(S.cards[id]||0)<=1; } // 강화된 마지막 1장은 트레이드 불가
 function enhPrice(p,lv){ return Math.round(p*(1+ENH_VAL*lv)/100)*100; }
 function ecard(id,lv){ const b=CARDS[id]; if(!b||!lv) return b; const k=id+'#'+lv; if(_ecache[k]) return _ecache[k];
   const a=attrs(b); const na={trait:a.trait}; Object.keys(ATTR_KO).forEach(x=>na[x]=Math.min(99,a[x]+lv));
-  return _ecache[k]=Object.assign({},b,{rating:b.rating+lv,baseRating:b.rating,basePrice:b.price,price:enhPrice(b.price,lv),enh:lv,_a:na}); }
+  return _ecache[k]=Object.assign({},b,{rating:Math.min(99,b.rating+lv),baseRating:b.rating,basePrice:b.price,price:enhPrice(b.price,lv),enh:lv,_a:na}); }
 function myCard(id){ return ecard(id,enhLv(id)); }
 function ownedValue(id){ const b=CARDS[id]; const n=(S.cards[id]||0); if(!b||!n) return 0; return b.price*(n-1)+myCard(id).price; }
 function sellNext(id){ const n=S.cards[id]||0; return Math.round((n<=1?myCard(id):CARDS[id]).price*0.6/100)*100; } // 중복은 기본 시세, 마지막 1장은 강화 시세
@@ -291,7 +291,7 @@ function openEnhance(id,back,res){
     ${res==='ok'?`<div class="enh-res ok">강화 성공! +${lv}</div>`:res==='fail'?`<div class="enh-res fail">강화 실패… 비용만 사라졌어요</div>`:''}
     ${nx?`<div class="kv"><span>능력치</span><b>${cur.rating} → <em>${nx.rating}</em></b></div><div class="kv"><span>시세</span><b>${fmt(cur.price)} → <em>${fmt(nx.price)}</em></b></div>
     <div class="kv"><span>성공 확률</span><b>${Math.round(rate*100)}%</b></div><div class="kv"><span>강화 비용</span><b>${fmt(cost)}</b></div><div class="kv"><span>내 잔액</span><b class="${S.money<cost?'neg':''}">${fmt(S.money)}</b></div>
-    <div class="muted small">실패해도 강화 단계는 내려가지 않아요. 비용만 사라져요. 급여는 강화 전 능력치 기준이에요.</div>
+    <div class="muted small">실패해도 강화 단계는 내려가지 않아요. 비용만 사라져요. 급여는 강화 전 능력치 기준, 능력치는 최대 99까지예요.</div>
     <div class="row"><button class="btn primary big" ${S.money<cost?'disabled':''} onclick="doEnhance('${id}','${back}')">강화하기 (${fmt(cost)})</button></div>`:`<div class="enh-res ok">최고 단계(+${ENH_MAX})예요!</div>`}
     <div class="row"><button class="btn" onclick="cardDetail('${id}','${back}')">카드 정보</button><button class="btn" onclick="${back}()">닫기</button></div></div></div>`);
 }
@@ -304,7 +304,7 @@ function doEnhance(id,back){
 }
 function openEnhanceList(){
   const list=myCards().filter(isPlayerCard).sort((a,b)=>(b.enh||0)-(a.enh||0)||b.rating-a.rating); const sq=squadIds();
-  openModal(`<div class="binder"><div class="binder-head"><div><h2>카드 강화</h2><div class="muted">선수 카드를 골라 +${ENH_MAX}까지 강화해요 · 성공 확률 ${ENH_RATE.map(r=>Math.round(r*100)+'%').join(' → ')}</div></div></div>
+  openModal(`<div class="binder"><div class="binder-head"><div><h2>카드 강화</h2><div class="muted">선수 카드를 골라 +${ENH_MAX}까지 강화해요 · 성공 확률 50% → 40% → 30% → 20% → 10% → 이후 5%</div></div></div>
     <div class="card-grid small" style="max-height:560px">${list.map(c=>`<div class="mini-card" onclick="openEnhance('${c.id}','openEnhanceList')">${cardSVG(c,96)}<div class="mc-name">${c.name}</div><div class="mc-sub"><b>${c.rating}</b>${c.enh?` <span class="enh-tag">+${c.enh}</span>`:''}${sq.has(c.id)?' · 선발':''}</div></div>`).join('')||'<div class="muted">선수 카드가 없어요</div>'}</div>
     <div class="row right"><button class="btn" onclick="closeModal()">닫기</button></div></div>`,'wide');
 }
