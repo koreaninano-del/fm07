@@ -96,15 +96,29 @@ function playFamily(uid){
     return {html:`<div class="price">${reward-w>=0?'+':''}${fmt(reward-w)}</div><div class="muted small">급여 ${fmt(w)} · 상금 ${fmt(reward)} · 순위표에 반영돼요</div>`};
   }});
 }
+/* ---- 패밀리 리그 순위 보상 (1위 100% : 2위 60% : 3위 40% 가치) ---- */
+const FAM_REWARD=[
+  {n:'패밀리 챔피언 팩',money:100000,parts:[['iconPrime',1,'아이콘(92+)'],['ultra',1,'울트라'],['legend',2,'레전드'],['gold',2,'골드']]},
+  {n:'패밀리 준우승 팩',money:60000,parts:[['icon',1,'아이콘'],['legend',4,'레전드'],['gold',3,'골드']]},
+  {n:'패밀리 3위 팩',money:40000,parts:[['icon',1,'아이콘'],['legend',2,'레전드'],['gold',1,'골드']]}];
+function famRewardText(R){ return R.parts.map(([k,n,t])=>t+(n>1?n:'')).join('·')+' + '+Math.round(R.money/10000)+'만원'; }
+function famRewardCards(rank){ const R=FAM_REWARD[rank-1]; if(!R) return []; if(!PACKS.length) buildCatalog();
+  const pool={iconPrime:POOL.icon.filter(c=>c.rating>=92),icon:POOL.icon,ultra:POOL.ultra,legend:POOL.legend,gold:POOL.gold}; const out=[];
+  R.parts.forEach(([k,n])=>{ for(let i=0;i<n;i++){ const p=pool[k]; if(p&&p.length) out.push(rpick(p)); } }); return out; }
+function famRewardModal(season,rank,R,cards){ openModal(`<div class="open-stage"><h2>${seasonLabel(season)} 패밀리 리그 ${rank}위!</h2><p class="muted">${R.n} · 상금 ${fmt(R.money)} · 카드 시세 ${fmt(cards.reduce((a,c)=>a+c.price,0))}</p>
+    <div class="cards-grid">${cards.map(c=>`<div class="rc" onclick="cardDetail('${c.id}','closeModal')">${cardSVG(c,120)}<div class="nm">${c.name}</div></div>`).join('')}</div>
+    <div class="row right"><button class="btn primary" onclick="closeModal();renderHome()">받기</button></div></div>`,'wide'); }
 /* ---- 시즌 정산 (월요일 이후 첫 접속: 지난주 순위로 상금) ---- */
 async function famSeasonAward(){
   const prev=prevSeasonKey();
   if(S.famAwarded===prev) return; if(!S.famAwarded||!String(S.famAwarded).startsWith('W')){ S.famAwarded=prev; save(); return; }
   const rs=await famDB().collection('results').where('season','==',prev).get(); const saved=Fam.results; Fam.results=rs.docs.map(d=>d.data());
   const tbl=famTable(); Fam.results=saved; const rank=tbl.findIndex(x=>x.t.uid===Account.uid)+1; S.famAwarded=prev;
-  if(rank>0&&tbl.length>1){ const prize=[60000,40000,25000][rank-1]||10000; S.money+=prize; let msg=`${seasonLabel(prev)} 패밀리 리그 ${rank}위 · 상금 +${fmt(prize)}`;
-    if(rank===1){ clubOf().trophies.league++; const pool=Object.values(CARDS).filter(x=>x.rar==='G'&&!x.edition); const b=pool[Math.floor(Math.random()*pool.length)]; addCard(S,b.id); msg+=` · 우승 보상 카드 ${b.name}`; }
-    clubOf().history.unshift({season:seasonLabel(prev),tier:0,rank,pts:tbl[rank-1].pts}); logIt(msg); toast(msg); }
+  if(rank>0&&tbl.length>1){ const R=FAM_REWARD[rank-1]; const prize=R?R.money:10000; S.money+=prize; let msg=`${seasonLabel(prev)} 패밀리 리그 ${rank}위 · 상금 +${fmt(prize)}`;
+    if(rank===1) clubOf().trophies.league++;
+    const cards=famRewardCards(rank); cards.forEach(c=>addCard(S,c.id)); if(cards.length){ S.recent=[...cards.map(c=>c.id).reverse(),...(S.recent||[])].slice(0,30); msg+=` · ${R.n}: ${cards.map(c=>c.name).join(', ')}`; }
+    clubOf().history.unshift({season:seasonLabel(prev),tier:0,rank,pts:tbl[rank-1].pts}); logIt(msg);
+    if(cards.length) setTimeout(()=>famRewardModal(prev,rank,R,cards),600); else toast(msg); }
   save();
 }
 /* ---- 패밀리 리그 패널 ---- */
@@ -118,7 +132,8 @@ function renderFamilyPanel(){
   el.innerHTML=`<div class="muted small" style="margin-bottom:8px">${seasonLabel(Fam.season)} · ${daysLeftInWeek()}일 남음</div>
     <div class="tblwrap"><table class="ltable fixed"><colgroup><col class="c-rank"><col><col class="c-n"><col class="c-n"><col class="c-n"><col class="c-n"><col class="c-gd"><col class="c-pts"></colgroup><tr><th>#</th><th>클럽</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr>${tbl.map((r,i)=>`<tr class="${r.t.uid===Account.uid?'me':''}"><td>${i+1}</td><td><div class="ell">${esc(r.t.name)}</div><div class="ell sub">${r.t.human?esc(r.t.owner||''):'AI'}</div></td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td></tr>`).join('')}</table></div>
     <div class="opps">${opps.map(o=>{ const left=famGamesLeft(o.t.uid); const played=famPairGames(Account.uid,o.t.uid); return `<div class="opp"><div class="opp-info"><div class="ell"><b>${esc(o.t.name)}</b></div><div class="ell muted small">능력치 ${o.t.rating||'–'}${o.t.human&&!o.t.ready?' · 스쿼드 미완성':''} · ${played}/${famPairAllowed()}</div></div><button class="btn ${left?'primary':''}" onclick="playFamily('${o.t.uid}')" ${err||!left||(o.t.human&&!o.t.ready)?'disabled':''}>${left?(left>1?`경기 (${left})`:'경기'):'완료'}</button></div>`; }).join('')}</div>
-    <div class="muted small" style="margin-top:10px">급여 ${fmt(w)} · 승리 ${fmt(Math.round(w*1.3)+3000)}</div>`;
+    <div class="muted small" style="margin-top:10px">급여 ${fmt(w)} · 승리 ${fmt(Math.round(w*1.3)+3000)}</div>
+    <div class="fam-rewards">${FAM_REWARD.map((R,i)=>`<div><b>${i+1}위</b><span>${famRewardText(R)}</span></div>`).join('')}</div>`;
 }
 /* ---- 가족 트레이드 ---- */
 let ft={to:null,offer:null,want:null};
