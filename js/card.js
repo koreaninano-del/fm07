@@ -311,3 +311,7 @@ function imageCardSVG(card,w){
    <text x="${w-10*k}" y="${h-bw-foot+13.5*k}" font-size="${8*k}" font-family="Inter, sans-serif" font-weight="700" text-anchor="end" fill="${ed.ink}">${ed.label}</text></svg>`;
 }
 cardSVG=function(card,w){ w=w||200; if(card.icon) return iconCardSVG(card,w); if(typeof IMG!=='undefined'&&IMG[card.img||card.id]) return imageCardSVG(card,w); return card.style==='sticker'? stickerSVG(card,w) : _classicSVG(card,w); };
+/* 강화 단계 배지 (+1 ~ +5) */
+(function(){ const base=cardSVG; cardSVG=function(card,w){ const s=base(card,w); if(!card||!card.enh) return s; w=w||200; const r=w*0.1, cx=w-r*1.25, cy=r*1.25;
+  const b=`<g><circle cx="${cx}" cy="${cy}" r="${r}" fill="#c6f24e" stroke="#000" stroke-width="${Math.max(1,w/100)}"/><text x="${cx}" y="${cy+r*0.38}" font-size="${r*1.05}" font-weight="800" font-family="Inter,system-ui,sans-serif" text-anchor="middle" fill="#000">+${card.enh}</text></g>`;
+  const i=s.lastIndexOf('</svg>'); return s.slice(0,i)+b+s.slice(i); }; })();
